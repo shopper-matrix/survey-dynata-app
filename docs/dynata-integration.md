@@ -29,12 +29,33 @@ Source: Dynata, "Signed URL Start-End API" (August 2025), in
 - Per survey the database stores only the Dynata **project ID** (`DynataSurveySettings`).
 - The link we give Dynata for a survey is `<APP_BASE_URL>/s/<surveyId>`.
 
+## From the help article "Surveys: Survey Details, Links & Redirects"
+
+Source: help.dynata.com, Dynata+ Sample › Create a Project (printed 9 Nov 2026), saved as
+`docs/Survey Details, Links & Redirects.pdf` if present.
+
+| Topic | What the article says |
+| --- | --- |
+| Security modes (per project) | **Dynata Secured Links (End)** — "most data platforms"; **Dynata Secured Links (Start-End)** — for listed platforms; **Survey Platform Security** (unsigned). Signed vs unsigned must match exactly; don't switch a project during testing, create a new one. |
+| Entry link | Our survey URL; Dynata appends `psid` (always) plus optional data appends `age`, `gender` (1 = Male, 2 = Female), `region` (coded, lookup file). Signed start links also carry `_k`, `_d` and `_s`. `project` is **not** mentioned; `_d` is undocumented (looks like `<id>/<code>`). |
+| End links | `https://dkr1.ssisurveys.com/projects/end?rst=…&psid=…` — complete `rst=1`, screen-out `rst=2`, over-quota `rst=3`, **quality `rst=2&qflag=…`** (value `1` in the unsigned table, `2` in the signed table; spelled `qFlag` in screenshots), invalid start signature `rst=2&svFlag=1`. The unchanged `psid` must be returned. |
+| Signing end links ourselves | HMAC-SHA256 with the secret over path + query, e.g. `/projects/end?rst=1&psid=…&_k=…`, without the domain; `&_s=<signature>` must be the last parameter; a new signature per respondent and outcome. Same algorithm as our `signature.ts`. |
+| Testing | At least one completed test is required before launch; a signed test project should have one question whose answers redirect through each signed end link. Typical errors: empty or literal `{psid}`, wrong `rst`, signed/unsigned mismatch (HTTP 400). |
+
+**Consequences for the backlog (DSA-303…305):**
+
+- Quality terminations have a link after all: `rst=2&qflag=…` (value to confirm). Our current
+  stand-in (screen-out link) should change.
+- We could build and sign end links ourselves ("End" mode) instead of relying on the
+  `buildAndValidate` API ("Start-End" mode). Which mode Dynata sets up for us must be confirmed.
+- The `project` parameter may not be sent at all, so a project check must not depend on it.
+
 ## Open questions for Dynata
 
-1. **Quality terminations:** the API returns no quality link. Which link / `rst` should
-   respondents removed for quality (speeders, attention checks, bots) receive?
-2. **Entry link:** do you append `project`, `psid`, `_k` and `_s` to the base URL we provide? Are
-   other parameters sent (country, language)?
+1. **Quality terminations:** the API returns no quality link, the help article says
+   `rst=2&qflag=1` (unsigned) and `rst=2&qflag=2` (signed). Which exact value and spelling?
+2. **Entry link:** which security mode will our projects use (End, Start-End or unsigned)? Is
+   `project` sent at all, what is `_d`, and should end links echo `_d`?
 3. **API operations:** rate limits, expected response time, behaviour when the API is
    unavailable, and a test environment or test key ID?
 4. **End links:** are they bound to the respondent, and how long do they stay valid?
