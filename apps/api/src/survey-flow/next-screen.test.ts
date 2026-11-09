@@ -20,6 +20,7 @@ function question(code: string, overrides: Partial<FlowQuestion> = {}): FlowQues
     config: { options: options('1', '2') },
     isScreener: false,
     displayLogic: null,
+    screenOutRules: [],
     ...overrides,
   };
 }

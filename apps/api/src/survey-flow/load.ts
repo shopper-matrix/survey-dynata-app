@@ -13,7 +13,12 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
       assignments: true,
       blocks: {
         orderBy: { position: 'asc' },
-        include: { questions: { orderBy: { position: 'asc' } } },
+        include: {
+          questions: {
+            orderBy: { position: 'asc' },
+            include: { screeningRules: { select: { condition: true } } },
+          },
+        },
       },
     },
   });
@@ -32,6 +37,9 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
         config: question.config as Record<string, unknown>,
         isScreener: question.isScreener,
         displayLogic: condition(question.displayLogic),
+        screenOutRules: question.screeningRules.map((rule) =>
+          conditionSchema.parse(rule.condition),
+        ),
       })),
     })),
   };

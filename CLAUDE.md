@@ -21,6 +21,11 @@ Source documents (read the relevant section before each story):
    until the current one is done.
 2. **Plan first.** Before writing code for a story, show a short plan (approach, files, new
    dependencies, open questions) and wait for approval.
+   _Exception (product owner, Nov 2026):_ the remaining backlog was approved as one compact plan
+   in milestones M1 Survey engine (307, 305 core, 308) → M2 Admin backend (601, 602, 309, 606, 607) → M3 Respondent UI (401–406) → M4 Admin UI (603–605) → M5 Quality & security (501–504)
+   → M6 Testing (701–703) → M7 Deploy & open source (801–805). Build them in that order without
+   per-story approval; still one commit per story, and ask when a story needs an account or a
+   decision only the product owner can make. Parked: 303, 304, 704.
 3. **Definition of done:** every acceptance criterion passes (verified, not assumed) **and**
    `pnpm lint`, `pnpm typecheck` and `pnpm test` succeed.
 4. **Exactly one commit per story**, Conventional Commits with the story ID as scope, e.g.

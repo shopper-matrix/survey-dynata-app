@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from '@survey-dynata/shared/db/client';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { respondentIdFromSession } from '../http/session.js';
+import { failsScreening } from '../screening/screening.js';
 import { loadFlowSurvey, loadRespondentState } from '../survey-flow/load.js';
 import type { FlowStep } from '../survey-flow/next-screen.js';
 import { presentQuestion } from '../survey-flow/present.js';
@@ -102,6 +103,18 @@ export function registerSessionRoutes(app: FastifyInstance, db: PrismaClient): v
       update: data,
     });
     state.answers.set(question.code, value.data as AnswerValue);
+
+    const ctx = {
+      answer: (code: string) => state.answers.get(code),
+      assignment: (name: string) => state.assignments[name] as string | string[] | undefined,
+    };
+    if (failsScreening(question.screenOutRules, ctx)) {
+      await db.respondent.update({
+        where: { id: respondent.id },
+        data: { status: 'screenout', endedAt: new Date() },
+      });
+      return { done: true, outcome: 'screenout' };
+    }
 
     return screenResponse((await resolveWalk(db, survey, state)).step);
   });

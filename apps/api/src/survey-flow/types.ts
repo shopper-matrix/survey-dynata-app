@@ -11,6 +11,8 @@ export interface FlowQuestion {
   config: Record<string, unknown>;
   isScreener: boolean;
   displayLogic: Condition | null;
+  /** Screening rules: the respondent is screened out when one matches after answering. */
+  screenOutRules: Condition[];
 }
 
 export interface FlowBlock {

@@ -36,8 +36,12 @@ const definition: SurveyDefinitionInput = {
           text: 'Which bars?',
           isScreener: true,
           config: {
-            options: [...options('1', '2', '3'), { id: 'none', label: 'None', exclusive: true }],
+            options: [
+              ...options('1', '2', '3', 'x'),
+              { id: 'none', label: 'None', exclusive: true },
+            ],
           },
+          screenOut: { question: 'S1', op: 'includes_any', value: ['x'] },
         },
         {
           code: 'P1',
@@ -236,5 +240,24 @@ describe('respondent session API', () => {
       total.filter((r) => (r.assignments as Record<string, unknown>).cell === cell).length;
     expect(Math.abs(count('A') - count('B'))).toBeLessThanOrEqual(1);
     expect(cells).toHaveLength(4);
+  });
+});
+
+describe('screening (DSA-307)', () => {
+  it('screens a respondent out right after a failing screener answer', async () => {
+    const session = await newSession();
+    const response = await session.answer('S1', { optionIds: ['1', 'x'] });
+    expect(response.json()).toEqual({ done: true, outcome: 'screenout' });
+
+    const stored = await db.respondent.findUniqueOrThrow({ where: { id: session.respondent.id } });
+    expect(stored.status).toBe('screenout');
+    expect(stored.endedAt).toBeInstanceOf(Date);
+    expect((await session.get()).statusCode).toBe(409);
+  });
+
+  it('lets a respondent who passes the screener continue', async () => {
+    const session = await newSession();
+    const response = await session.answer('S1', { optionIds: ['1'] });
+    expect(screen(response).question?.code).toBe('P1');
   });
 });
