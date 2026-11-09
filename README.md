@@ -80,5 +80,12 @@ pnpm install
 pnpm lint        # ESLint across all packages
 pnpm typecheck   # TypeScript (strict) in every package
 pnpm test        # Vitest in every package
+pnpm build       # Production builds (apps/web/dist, apps/api/dist)
 pnpm format      # Prettier
 ```
+
+## CI
+
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs format check, lint,
+typecheck, tests and build on every pull request and on pushes to `dev` and `main`. Run the same
+commands locally before opening a PR.

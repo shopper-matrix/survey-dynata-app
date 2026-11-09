@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "build": "esbuild src/server.ts --bundle --platform=node --target=node20 --format=esm --packages=external --alias:@survey-dynata/shared=../../packages/shared/src/index.ts --outfile=dist/server.js",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -14,6 +16,7 @@
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15"
   }
 }
