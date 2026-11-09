@@ -3,6 +3,7 @@ import { PrimaryButton } from '@/components/survey/PrimaryButton';
 import { SurveyLayout } from '@/components/survey/SurveyLayout';
 import { ApiError, sessionApi, type Screen } from './api';
 import { en } from './messages';
+import { QuestionView } from './QuestionView';
 import { WelcomeView } from './WelcomeView';
 
 /** Where the session ends: the provider's end link (or the internal test page). */
@@ -42,6 +43,24 @@ export function SurveyPage() {
     },
     [show, t],
   );
+
+  // Every question answered: end the session (the server decides the outcome).
+  const finished = screen?.done === true && !screen.redirectUrl;
+  useEffect(() => {
+    if (!finished) return;
+    let active = true;
+    sessionApi
+      .finish()
+      .then((next) => {
+        if (active) show(next);
+      })
+      .catch(() => {
+        if (active) setError(t.error);
+      });
+    return () => {
+      active = false;
+    };
+  }, [finished, show, t]);
 
   // First load: state is only set once the request settles.
   useEffect(() => {
@@ -100,10 +119,19 @@ export function SurveyPage() {
   }
 
   if (!screen.done) {
+    const { question } = screen;
     return (
-      <SurveyLayout progress={screen.progress}>
-        <h1 className="text-lg font-semibold sm:text-xl">{screen.question.text}</h1>
-      </SurveyLayout>
+      <QuestionView
+        key={question.code}
+        question={question}
+        progress={screen.progress}
+        busy={busy}
+        error={error}
+        t={t}
+        onSubmit={(value, meta) => {
+          void run(() => sessionApi.answer(question.code, value, meta.responseTimeMs));
+        }}
+      />
     );
   }
 

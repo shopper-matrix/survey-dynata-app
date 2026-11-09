@@ -31,6 +31,22 @@ export const en = {
   lookClosely: 'Look closely. The picture disappears after a few seconds.',
   showAgainNotPossible: 'The picture was shown once. Please answer from memory.',
   continue: 'Continue',
+  next: 'Next',
+  progress: 'Survey progress',
+  invalid: {
+    single_choice: 'Please choose one answer.',
+    multi_choice: 'Please choose at least one answer.',
+    grid: 'Please answer every line.',
+    open_text: 'Please write a short answer.',
+    number: 'Please enter a number in the allowed range.',
+    rating: 'Please choose a number.',
+    scale: 'Please answer every item.',
+    maxdiff: 'Please choose the most and the least important item in every set.',
+    constant_sum: 'Please distribute exactly all points.',
+    click_map: 'Please choose a place for every item.',
+    paired_comparison: 'Please answer every comparison.',
+    other: 'Please answer the question.',
+  },
 };
 
 export type Messages = typeof en;

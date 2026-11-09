@@ -71,3 +71,69 @@ describe('SurveyPage welcome (DSA-402)', () => {
     });
   });
 });
+
+describe('SurveyPage flow (DSA-404)', () => {
+  const choice = (code: string, text: string) => ({
+    done: false,
+    progress: 50,
+    question: {
+      code,
+      type: 'single_choice',
+      text,
+      config: {
+        options: [
+          { id: '1', label: 'Ja' },
+          { id: '2', label: 'Nein' },
+        ],
+      },
+    },
+  });
+
+  it('validates, saves each answer, shows the next question and finishes', async () => {
+    let answered = 0;
+    const replace = vi.fn();
+    vi.stubGlobal('location', { replace });
+    const fetchStub = vi.fn((input: string, init?: RequestInit) => {
+      const path = input.replace('/api/session/', '');
+      if (path === 'questions') return Promise.resolve(Response.json(choice('Q1', 'Erste Frage')));
+      if (path === 'answers') {
+        answered += 1;
+        const body = answered === 1 ? choice('Q2', 'Zweite Frage') : { done: true };
+        return Promise.resolve(Response.json(body));
+      }
+      if (path === 'finish') {
+        return Promise.resolve(
+          Response.json({ done: true, outcome: 'complete', redirectUrl: '/end?rst=1' }),
+        );
+      }
+      return Promise.resolve(
+        Response.json({ error: `unexpected ${path} ${String(init?.method)}` }, { status: 500 }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchStub);
+
+    render(<SurveyPage />);
+    expect(await screen.findByRole('heading', { name: 'Erste Frage' })).toBeDefined();
+    expect(screen.getByRole('progressbar', { name: 'Survey progress' })).toBeDefined();
+
+    // Next without an answer: friendly message, nothing sent.
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByRole('alert').textContent).toBe('Please choose one answer.');
+    expect(answered).toBe(0);
+
+    await userEvent.click(screen.getByText('Ja'));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByRole('heading', { name: 'Zweite Frage' })).toBeDefined();
+    const [, init] = fetchStub.mock.calls.find(([url]) => url.endsWith('answers')) ?? [];
+    expect(JSON.parse(init?.body as string)).toEqual({
+      questionCode: 'Q1',
+      value: { optionId: '1' },
+    });
+
+    await userEvent.click(screen.getByText('Nein'));
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await vi.waitFor(() => {
+      expect(replace).toHaveBeenCalledWith('/end?rst=1');
+    });
+  });
+});
