@@ -11,7 +11,7 @@ function renderAt(path: string) {
 }
 
 const screens: [path: string, heading: RegExp][] = [
-  ['/', /Survey Dynata App/],
+  ['/prototype', /Survey Dynata App/],
   ['/prototype/survey/welcome', /Grocery Shopping Habits 2026/],
   ['/prototype/survey/single', /How old are you/],
   ['/prototype/survey/multi', /Where have you bought groceries/],

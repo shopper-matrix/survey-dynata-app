@@ -12,13 +12,30 @@ import { WelcomeScreen } from '@/prototype/respondent/WelcomeScreen';
 import { SurveyPage } from '@/respondent/SurveyPage';
 
 // The admin area is loaded on demand so respondents never download it (incl. the chart library).
-const AdminLayout = lazy(() => import('@/prototype/admin/AdminLayout'));
-const SurveyList = lazy(() => import('@/prototype/admin/SurveyList'));
-const Dashboard = lazy(() => import('@/prototype/admin/Dashboard'));
+const AdminLayout = lazy(() => import('@/admin/AdminLayout'));
+const LoginPage = lazy(() => import('@/admin/LoginPage'));
+const SurveysPage = lazy(() => import('@/admin/SurveysPage'));
+const SurveyBuilderPage = lazy(() => import('@/admin/builder/SurveyBuilderPage'));
+const PrototypeAdminLayout = lazy(() => import('@/prototype/admin/AdminLayout'));
+const PrototypeSurveyList = lazy(() => import('@/prototype/admin/SurveyList'));
+const PrototypeDashboard = lazy(() => import('@/prototype/admin/Dashboard'));
+
+const lazyPage = (page: React.ReactNode) => <Suspense fallback={null}>{page}</Suspense>;
 
 export const routes: RouteObject[] = [
   // The real respondent survey: the entry link (/s/…) redirects here after setting the session.
   { path: '/survey', element: <SurveyPage /> },
+
+  // Admin area.
+  { path: '/admin/login', element: lazyPage(<LoginPage />) },
+  {
+    path: '/admin',
+    element: lazyPage(<AdminLayout />),
+    children: [
+      { index: true, element: <SurveysPage /> },
+      { path: 'surveys/:id', element: <SurveyBuilderPage /> },
+    ],
+  },
 
   // UI prototype (DSA-105), the design reference until every screen has a real counterpart.
   { path: '/prototype', element: <PrototypeIndex /> },
@@ -39,16 +56,12 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/prototype/admin',
-    element: (
-      <Suspense fallback={null}>
-        <AdminLayout />
-      </Suspense>
-    ),
+    element: lazyPage(<PrototypeAdminLayout />),
     children: [
       { index: true, element: <Navigate to="surveys" replace /> },
-      { path: 'surveys', element: <SurveyList /> },
-      { path: 'dashboard', element: <Dashboard /> },
+      { path: 'surveys', element: <PrototypeSurveyList /> },
+      { path: 'dashboard', element: <PrototypeDashboard /> },
     ],
   },
-  { path: '*', element: <Navigate to="/prototype" replace /> },
+  { path: '*', element: <Navigate to="/admin" replace /> },
 ];
