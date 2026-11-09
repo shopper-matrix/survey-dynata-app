@@ -1,0 +1,13 @@
+{
+  "name": "@survey-dynata/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@survey-dynata/shared": "workspace:*"
+  }
+}
