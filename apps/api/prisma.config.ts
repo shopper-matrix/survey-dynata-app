@@ -10,7 +10,7 @@ try {
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  migrations: { path: 'prisma/migrations' },
+  migrations: { path: 'prisma/migrations', seed: 'tsx prisma/seed.ts' },
   // `prisma generate` and `validate` don't need a database, so the URL may be absent here.
   datasource: { url: process.env.DATABASE_URL ?? '' },
 });

@@ -64,8 +64,12 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
 - The client is generated into `packages/shared/src/generated/prisma` (git-ignored). Import types
   and enums from `@survey-dynata/shared/db` (browser-safe) and the client only in the API via
   `@survey-dynata/shared/db/client` (`apps/api/src/db.ts`).
-- Questions are generic: `type` enum + `config` JSON validated per type with Zod. A new question
-  type adds an enum value and a config schema, not a table.
+- Questions are generic: `type` enum + `config` JSON validated per type with Zod
+  (`packages/shared/src/questions/config.ts`). A new question type adds an enum value and a
+  config schema, not a table. Conditions (screening, quotas, display logic) use
+  `packages/shared/src/conditions.ts`. Answer value shapes are documented in
+  `apps/api/src/seed/demo-answers.ts` until DSA-306 makes them a shared schema.
+- `Answer.question` is `onDelete: Restrict`: delete answers before deleting a survey's questions.
 - `Respondent.panelRespondentId` is provider-neutral; Dynata names stay in `apps/api/src/dynata/`.
 - `docs/Fragebogen.md` (client questionnaire, git-ignored, never commit) is the reference survey
   the question types must support.
@@ -99,7 +103,9 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   prototype screens with real ones as features land, and delete them once unused.
 - DSA-106 is postponed (user's decision); mock Dynata mode still applies.
 - DSA-201 done: Prisma schema + first migration; CI runs `migrate deploy` and DB tests against a
-  Postgres service. Next: DSA-202 (demo seed data).
+  Postgres service.
+- DSA-202 done: `pnpm db:seed` → demo survey (every question type) + 50 fake respondents
+  (`apps/api/src/seed/`). Next: DSA-301 (needs DSA-106 specs; mock mode until then).
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
 - Deviations to keep in mind:
   - The API is currently a plain `node:http` server. Fastify comes in with the first real routes.

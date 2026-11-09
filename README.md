@@ -103,8 +103,16 @@ exported as `@survey-dynata/shared/db` (types and enums, safe for the browser) a
 pnpm db:migrate --name add-something   # change the schema: create + apply a migration (dev)
 pnpm db:deploy                         # apply pending migrations (CI, production)
 pnpm db:generate                       # regenerate the client after a schema change
+pnpm db:seed                           # (re)create the demo survey with 50 fake respondents
 pnpm --filter @survey-dynata/api test:db   # database tests (needs a running database)
 ```
+
+### Demo data
+
+`pnpm db:seed` (or `docker compose exec api pnpm db:seed`) creates the survey "Demo: Snack Bar
+Study": one question of every type, two screeners, two quota cells and 50 fake respondents
+(`TEST-0001` … `TEST-0050`) across all outcomes. Running it again replaces the demo survey; it
+refuses to run with `NODE_ENV=production`. No real personal data is involved.
 
 `docker compose up` applies pending migrations automatically when the API starts. Commands run on
 your machine use `DATABASE_URL` from `.env` (pointing at `localhost:5432`).
