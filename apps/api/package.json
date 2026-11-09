@@ -31,6 +31,7 @@
   "devDependencies": {
     "esbuild": "^0.28.2",
     "prisma": "~7.10.1",
+    "sav-reader": "^2.0.8",
     "tsx": "^4.23.15"
   }
 }

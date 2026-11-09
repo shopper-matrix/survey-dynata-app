@@ -6,6 +6,7 @@ import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
 import { registerAdminAuthRoutes } from './routes/admin-auth.js';
+import { registerAdminExportRoutes } from './routes/admin-export.js';
 import { registerAdminSurveyRoutes } from './routes/admin-surveys.js';
 import { registerAdminTestLinkRoutes } from './routes/admin-test-links.js';
 import { registerEntryRoute } from './routes/entry.js';
@@ -42,6 +43,7 @@ export async function buildApp({
   registerAdminAuthRoutes(app, { db, secureCookies, idleMinutes });
   registerAdminSurveyRoutes(app, { db, idleMinutes });
   registerAdminTestLinkRoutes(app, { db, provider, appBaseUrl: env.APP_BASE_URL, idleMinutes });
+  registerAdminExportRoutes(app, { db, idleMinutes });
   registerTestEndPage(app);
 
   return app;
