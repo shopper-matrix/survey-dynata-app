@@ -1,4 +1,9 @@
-import type { Condition, QuestionConfigInput, SurveyDefinitionInput } from '@survey-dynata/shared';
+import type {
+  AttentionAnswer,
+  Condition,
+  QuestionConfigInput,
+  SurveyDefinitionInput,
+} from '@survey-dynata/shared';
 import type { QuestionType } from '@survey-dynata/shared/db';
 
 // Demo survey for contributors and local development: one question of every type, two
@@ -15,6 +20,7 @@ export interface DemoQuestion<T extends QuestionType = QuestionType> {
   config: QuestionConfigInput<T>;
   isScreener?: boolean;
   isAttentionCheck?: boolean;
+  attentionAnswer?: AttentionAnswer;
   /** Ends the survey as screen-out when it matches. */
   screenOut?: Condition;
 }
@@ -32,13 +38,19 @@ function q<T extends QuestionType>(
   type: T,
   text: string,
   config: QuestionConfigInput<T>,
-  extra: Pick<DemoQuestion, 'isScreener' | 'isAttentionCheck' | 'screenOut'> = {},
+  extra: Pick<
+    DemoQuestion,
+    'isScreener' | 'isAttentionCheck' | 'attentionAnswer' | 'screenOut'
+  > = {},
 ): DemoQuestion {
   return { code, type, text, config, ...extra };
 }
 
 const options = (...labels: [id: string, label: string][]) =>
   labels.map(([id, label]) => ({ id, label }));
+
+/** The attention-check row in D1 and the answer it expects. */
+export const attentionCheck = { question: 'D1', row: 'attention', expected: '4' } as const;
 
 const agreement = options(
   ['1', 'Strongly disagree'],
@@ -299,7 +311,10 @@ export const demoBlocks: DemoBlock[] = [
           ),
           columns: agreement,
         },
-        { isAttentionCheck: true },
+        {
+          isAttentionCheck: true,
+          attentionAnswer: { row: attentionCheck.row, expected: [attentionCheck.expected] },
+        },
       ),
       q('D2', 'open_text', 'What would make snack bars better for you?', {
         minLength: 0,
@@ -311,9 +326,6 @@ export const demoBlocks: DemoBlock[] = [
     ],
   },
 ];
-
-/** The attention-check row in D1 and the answer it expects. */
-export const attentionCheck = { question: 'D1', row: 'attention', expected: '4' } as const;
 
 export const demoQuotaCells = [
   {

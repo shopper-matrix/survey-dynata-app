@@ -70,3 +70,12 @@ export async function storedSessionEnd(
   });
   return log ? sessionEnd(log.outcome, log.url, log.respondent.isTest) : null;
 }
+
+/** Runs hooks in order, each seeing the outcome the previous one returned. */
+export function chainHooks(...hooks: OutcomeHook[]): OutcomeHook {
+  return async (tx, respondent, outcome) => {
+    let current = outcome;
+    for (const hook of hooks) current = await hook(tx, respondent, current);
+    return current;
+  };
+}

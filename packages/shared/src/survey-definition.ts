@@ -7,6 +7,11 @@ import {
   type Condition,
 } from './conditions.js';
 import { questionConfigSchemas } from './questions/config.js';
+import {
+  attentionAnswerSchema,
+  qualitySettingsSchema,
+  type AttentionAnswer,
+} from './quality-settings.js';
 import { questionTranslationsSchema, surveyTranslationsSchema } from './translations.js';
 
 // File format for a whole survey (`pnpm survey:import <file>`): blocks, questions, screening,
@@ -34,6 +39,8 @@ export const questionDefinitionSchema = z
     config: z.unknown(),
     isScreener: z.boolean().default(false),
     isAttentionCheck: z.boolean().default(false),
+    /** Required for attention checks: the answer an attentive respondent gives. */
+    attentionAnswer: attentionAnswerSchema.optional(),
     /** Show the question only when this matches. */
     displayLogic: conditionSchema.optional(),
     /** End the survey as screen-out when this matches. */
@@ -88,6 +95,7 @@ export const surveyDefinitionSchema = z
       notes: z.array(z.string().min(1)).default([]),
       ...welcomeShape,
       translations: surveyTranslationsSchema.default({}),
+      quality: qualitySettingsSchema.prefault({}),
     }),
     assignments: z.array(assignmentSchema).default([]),
     blocks: z.array(blockDefinitionSchema).min(1),
@@ -140,6 +148,10 @@ export const surveyDefinitionSchema = z
       for (const question of block.questions) {
         check(question.code, question.displayLogic);
         check(question.code, question.screenOut);
+        const attentionIssue = attentionAnswerIssue(question);
+        if (attentionIssue) {
+          ctx.addIssue({ code: 'custom', message: `${question.code}: ${attentionIssue}` });
+        }
         const config = question.config as {
           pipeFrom?: { question: string };
           assignment?: string;
@@ -173,3 +185,29 @@ export const surveyDefinitionSchema = z
 
 export type SurveyDefinition = z.output<typeof surveyDefinitionSchema>;
 export type SurveyDefinitionInput = z.input<typeof surveyDefinitionSchema>;
+
+/** Why an attention check's expected answer doesn't fit the question, or null if it does. */
+function attentionAnswerIssue(question: {
+  type: QuestionType;
+  config: unknown;
+  isAttentionCheck: boolean;
+  attentionAnswer?: AttentionAnswer | undefined;
+}): string | null {
+  const { attentionAnswer: answer } = question;
+  if (!question.isAttentionCheck) return answer ? 'attentionAnswer needs isAttentionCheck' : null;
+  if (!answer) return 'an attention check needs an attentionAnswer';
+  const ids = (list: unknown) =>
+    new Set(Array.isArray(list) ? list.map((item: { id: string }) => item.id) : []);
+  const config = question.config as { rows?: unknown; columns?: unknown; options?: unknown };
+  const isGrid = question.type === 'grid_single' || question.type === 'grid_multi';
+  const isChoice = question.type === 'single_choice' || question.type === 'multi_choice';
+  if (!isGrid && !isChoice) return 'attention checks must be choice or grid questions';
+  if (isGrid && !(answer.row && ids(config.rows).has(answer.row))) {
+    return 'attentionAnswer.row must be one of the grid rows';
+  }
+  if (isChoice && answer.row) return 'attentionAnswer.row is only for grids';
+  const valid = ids(isGrid ? config.columns : config.options);
+  return answer.expected.every((id) => valid.has(id))
+    ? null
+    : 'attentionAnswer.expected must list existing options';
+}

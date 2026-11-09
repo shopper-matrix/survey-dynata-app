@@ -95,6 +95,9 @@ model Survey {
   language        String       @default("en")
   /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.
   assignments     Json         @default("[]")
+  /// Quality checks at finish (speeders, straightlining, attention checks), see
+  /// packages/shared/src/quality-settings.ts. Missing keys take the defaults.
+  qualitySettings Json         @default("{}")
   /// Programming notes for what the engine cannot express yet.
   notes           String[]     @default([])
   createdAt       DateTime     @default(now())
@@ -149,6 +152,8 @@ model Question {
   config           Json         @default("{}")
   isScreener       Boolean      @default(false)
   isAttentionCheck Boolean      @default(false)
+  /// Expected answer of an attention check: { row?, expected: optionIds } (quality-settings.ts).
+  attentionAnswer  Json?
   displayLogic     Json?
   /// Programming notes for what the engine cannot express yet.
   notes            String[]     @default([])

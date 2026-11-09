@@ -1,6 +1,8 @@
 import {
   surveyDefinitionSchema,
+  type AttentionAnswer,
   type Condition,
+  type QualitySettingsInput,
   type QuestionTranslations,
   type SurveyDefinitionInput,
   type SurveyTranslations,
@@ -49,6 +51,7 @@ export async function exportDefinition(
       ...(survey.privacyNotice ? { privacyNotice: survey.privacyNotice } : {}),
       ...(survey.privacyPolicyUrl ? { privacyPolicyUrl: survey.privacyPolicyUrl } : {}),
       translations: survey.translations as SurveyTranslations,
+      quality: survey.qualitySettings as QualitySettingsInput,
     },
     assignments: survey.assignments as SurveyDefinitionInput['assignments'],
     blocks: survey.blocks.map((block) => ({
@@ -63,6 +66,9 @@ export async function exportDefinition(
         config: question.config,
         isScreener: question.isScreener,
         isAttentionCheck: question.isAttentionCheck,
+        ...(question.attentionAnswer === null
+          ? {}
+          : { attentionAnswer: question.attentionAnswer as AttentionAnswer }),
         notes: question.notes,
         translations: question.translations as QuestionTranslations,
         ...condition(question.displayLogic),

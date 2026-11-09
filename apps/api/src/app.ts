@@ -6,6 +6,8 @@ import { createTurnstile, type BotCheck } from './bot-check/turnstile.js';
 import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { requireAdmin } from './admin/auth.js';
+import { applyQualityChecks } from './quality/apply.js';
+import { chainHooks } from './session/end-session.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
 import { registerAdminAuthRoutes } from './routes/admin-auth.js';
 import { registerAdminExportRoutes } from './routes/admin-export.js';
@@ -43,7 +45,12 @@ export async function buildApp({
 
   registerHealthRoute(app, db);
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
-  registerSessionRoutes(app, { db, provider, botCheck, beforeEnd: applyQuotasOnComplete });
+  registerSessionRoutes(app, {
+    db,
+    provider,
+    botCheck,
+    beforeEnd: chainHooks(applyQualityChecks, applyQuotasOnComplete),
+  });
   provider.registerRoutes?.(app);
   const idleMinutes = env.ADMIN_SESSION_IDLE_MINUTES ?? 30;
   registerAdminAuthRoutes(app, { db, secureCookies, idleMinutes });

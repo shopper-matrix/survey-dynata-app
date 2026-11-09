@@ -3,6 +3,7 @@ import {
   blockDefinitionSchema,
   conditionSchema,
   questionDefinitionSchema,
+  qualitySettingsSchema,
   quotaDefinitionSchema,
   surveyTranslationsSchema,
   welcomeShape,
@@ -49,6 +50,7 @@ const surveyPatchSchema = z.strictObject({
   notes: z.array(z.string().min(1)).optional(),
   assignments: z.array(assignmentSchema).optional(),
   translations: surveyTranslationsSchema.optional(),
+  quality: qualitySettingsSchema.optional(),
   ...welcomeShape,
 });
 
@@ -189,7 +191,7 @@ export function registerAdminSurveyRoutes(
   app.patch('/api/admin/surveys/:id', editor, async (request, reply) => {
     const body = surveyPatchSchema.safeParse(request.body);
     if (!body.success) return fail(reply, 400, 'invalid_request', body.error.issues);
-    const { assignments, translations, ...data } = body.data;
+    const { assignments, translations, quality, ...data } = body.data;
     return mutate(request, reply, 'survey_updated', async (tx, surveyId) => {
       const current = await tx.survey.findUniqueOrThrow({ where: { id: surveyId } });
       if (
@@ -205,6 +207,7 @@ export function registerAdminSurveyRoutes(
           ...withoutUndefined(data),
           ...(assignments ? { assignments: json(assignments) } : {}),
           ...(translations ? { translations: json(translations) } : {}),
+          ...(quality ? { qualitySettings: json(quality) } : {}),
         },
       });
     });
@@ -478,6 +481,7 @@ async function writeQuestion(
     config: json(question.config),
     isScreener: question.isScreener,
     isAttentionCheck: question.isAttentionCheck,
+    attentionAnswer: question.attentionAnswer ? json(question.attentionAnswer) : Prisma.DbNull,
     notes: question.notes,
     translations: json(question.translations),
     displayLogic: question.displayLogic ? json(question.displayLogic) : Prisma.DbNull,

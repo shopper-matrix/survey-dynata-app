@@ -135,12 +135,16 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
   (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
   test respondents excluded; incidence = completes / (completes + screen-outs)).
-  Next: M5 (DSA-501 quality checks).
+- DSA-501: quality checks run at finish before quotas (`quality/`; `chainHooks` in `app.ts`).
+  Settings per survey in `Survey.qualitySettings` (`packages/shared/src/quality-settings.ts`;
+  set via import file `survey.quality` or `PATCH /api/admin/surveys/:id` `quality`; no admin
+  form yet). Attention checks need `attentionAnswer` ({ row?, expected }).
+  Next: DSA-502 (duplicate and bot protection).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
