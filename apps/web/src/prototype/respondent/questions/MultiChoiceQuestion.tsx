@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { storesQuestion } from '../../fake-data';
-import { OptionCard } from '../OptionCard';
+import { OptionCard } from '@/components/survey/OptionCard';
 import { QuestionScreen } from '../QuestionScreen';
 
 const EXCLUSIVE_OPTION = 'none';

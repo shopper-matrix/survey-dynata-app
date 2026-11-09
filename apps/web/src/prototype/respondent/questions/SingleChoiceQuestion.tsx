@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ageQuestion } from '../../fake-data';
-import { OptionCard } from '../OptionCard';
+import { OptionCard } from '@/components/survey/OptionCard';
 import { QuestionScreen } from '../QuestionScreen';
 
 /** Single choice; doubles as the screener ("Under 18" screens out). */

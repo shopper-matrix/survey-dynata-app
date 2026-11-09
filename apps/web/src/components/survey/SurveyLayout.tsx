@@ -1,28 +1,34 @@
 import type { ReactNode } from 'react';
-import { ThemeToggle } from '@/app/ThemeToggle';
 import { Progress } from '@/components/ui/progress';
 
-interface RespondentPageProps {
+interface SurveyLayoutProps {
   /** 0–100; omit to hide the progress bar. */
   progress?: number;
+  /** Accessible name of the progress bar (translated by the caller). */
+  progressLabel?: string;
   children: ReactNode;
-  /** Sticky action area: fixed at the bottom on phones, inline from 640 px. */
+  /** Action area: fixed at the bottom on phones, inline from 640 px. */
   footer?: ReactNode;
 }
 
-/** Calm, mobile-first frame shared by every respondent screen. */
-export function RespondentPage({ progress, children, footer }: RespondentPageProps) {
+/**
+ * Calm, mobile-first frame for every respondent screen: thin progress bar on top, one column
+ * of at most 36 rem, the main action reachable with the thumb. Light and dark follow the device.
+ */
+export function SurveyLayout({
+  progress,
+  progressLabel = 'Progress',
+  children,
+  footer,
+}: SurveyLayoutProps) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-10 bg-background">
         {progress === undefined ? null : (
-          <Progress value={progress} aria-label="Survey progress" className="h-1 rounded-none" />
+          <Progress value={progress} aria-label={progressLabel} className="h-1 rounded-none" />
         )}
-        <div className="mx-auto flex w-full max-w-xl justify-end px-4 pt-1">
-          <ThemeToggle />
-        </div>
       </header>
-      <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-28 sm:flex-none sm:pb-8">
+      <main className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-28 sm:flex-none sm:pb-8">
         {children}
       </main>
       {footer ? (

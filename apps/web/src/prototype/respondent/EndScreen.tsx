@@ -1,7 +1,7 @@
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { RespondentPage } from './RespondentPage';
+import { SurveyLayout } from '@/components/survey/SurveyLayout';
 
 interface EndScreenProps {
   outcome: 'complete' | 'screenout';
@@ -27,7 +27,7 @@ export function EndScreen({ outcome }: EndScreenProps) {
   const { title, message } = copy[outcome];
 
   return (
-    <RespondentPage progress={100}>
+    <SurveyLayout progress={100}>
       <div className="mt-16 flex flex-col items-center text-center" role="status">
         {outcome === 'complete' ? (
           <CheckCircle2 aria-hidden className="size-12 text-primary" />
@@ -40,6 +40,6 @@ export function EndScreen({ outcome }: EndScreenProps) {
           <Link to="/">Continue</Link>
         </Button>
       </div>
-    </RespondentPage>
+    </SurveyLayout>
   );
 }

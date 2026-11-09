@@ -3,11 +3,11 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { demoSurvey } from '../fake-data';
 import { progressPercent } from './flow';
-import { RespondentPage } from './RespondentPage';
+import { SurveyLayout } from '@/components/survey/SurveyLayout';
 
 export function WelcomeScreen() {
   return (
-    <RespondentPage
+    <SurveyLayout
       progress={progressPercent('welcome')}
       footer={
         <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-4">
@@ -48,6 +48,6 @@ export function WelcomeScreen() {
           Read the full privacy policy
         </a>
       </section>
-    </RespondentPage>
+    </SurveyLayout>
   );
 }

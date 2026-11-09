@@ -2,7 +2,8 @@ import { useId, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { nextStep, progressPercent, type FlowStep } from './flow';
-import { RespondentPage } from './RespondentPage';
+import { ErrorMessage } from '@/components/survey/ErrorMessage';
+import { SurveyLayout } from '@/components/survey/SurveyLayout';
 
 interface QuestionScreenProps {
   step: FlowStep;
@@ -38,7 +39,7 @@ export function QuestionScreen({
   }
 
   return (
-    <RespondentPage
+    <SurveyLayout
       progress={progressPercent(step)}
       footer={
         <Button size="lg" className="h-12 w-full text-base sm:w-auto sm:px-10" onClick={handleNext}>
@@ -51,11 +52,7 @@ export function QuestionScreen({
       </h1>
       {hint ? <p className="mt-1 text-muted-foreground">{hint}</p> : null}
       <div className="mt-6">{children({ questionId, errorId, showError })}</div>
-      {showError ? (
-        <p id={errorId} role="alert" className="mt-4 font-medium text-destructive">
-          {validationError}
-        </p>
-      ) : null}
-    </RespondentPage>
+      {showError ? <ErrorMessage id={errorId}>{validationError}</ErrorMessage> : null}
+    </SurveyLayout>
   );
 }
