@@ -1,4 +1,6 @@
-/** Small seeded PRNG (mulberry32) so the demo data is identical on every run. */
+import { createHash } from 'node:crypto';
+
+/** Small seeded PRNG (mulberry32): the same seed always gives the same sequence. */
 export interface Random {
   next(): number;
   int(min: number, max: number): number;
@@ -40,4 +42,9 @@ export function createRandom(seed: number): Random {
     sample: (items, count) => shuffle(items).slice(0, count),
     shuffle,
   };
+}
+
+/** A PRNG seeded from text, e.g. respondent ID + question code: same text, same sequence. */
+export function randomFromText(text: string): Random {
+  return createRandom(createHash('sha256').update(text).digest().readUInt32BE(0));
 }

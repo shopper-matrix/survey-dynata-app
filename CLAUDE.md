@@ -122,7 +122,16 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   `notes`.
 - **DSA-303…305 are parked until the end** (product owner, Nov 2026): Dynata security mode and
   quality flag must be confirmed first; their revised plan is in `docs/Backlog.md`. Keep working
-  in mock mode. Next: DSA-306, then the rest of the backlog in order.
+  in mock mode.
+- DSA-306 done: respondent session API `GET /api/session/questions`, `POST /api/session/answers`
+  (`routes/session.ts`). The flow engine (`apps/api/src/survey-flow/`) is pure: `walkSurvey`
+  decides the next screen (block order incl. rotation, display logic, piping, seeded per-respondent
+  randomisation, split cells); `resolveWalk` persists block order and balanced test-group
+  assignments (`$blockOrder`, `$strata` keys in `Respondent.assignments`). Answer formats and the
+  condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
+  API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
+  DB tests run one file at a time (`test:db`), since they share one database.
+  Next: DSA-307 (screening engine).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

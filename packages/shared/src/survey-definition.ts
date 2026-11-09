@@ -113,11 +113,20 @@ export const surveyDefinitionSchema = z
       for (const question of block.questions) {
         check(question.code, question.displayLogic);
         check(question.code, question.screenOut);
-        const pipe = (question.config as { pipeFrom?: { question: string } }).pipeFrom;
-        if (pipe && !codes.has(pipe.question)) {
+        const config = question.config as {
+          pipeFrom?: { question: string };
+          assignment?: string;
+        };
+        if (config.pipeFrom && !codes.has(config.pipeFrom.question)) {
           ctx.addIssue({
             code: 'custom',
-            message: `${question.code}: pipes from unknown question ${pipe.question}`,
+            message: `${question.code}: pipes from unknown question ${config.pipeFrom.question}`,
+          });
+        }
+        if (config.assignment && !assignments.has(config.assignment)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${question.code}: unknown assignment ${config.assignment}`,
           });
         }
       }

@@ -1,0 +1,54 @@
+import type { AnswerValue, Condition } from '@survey-dynata/shared';
+import type { QuestionType } from '@survey-dynata/shared/db';
+
+// The survey as the flow engine sees it: plain data, loaded once per request.
+
+export interface FlowQuestion {
+  id: string;
+  code: string;
+  type: QuestionType;
+  text: string;
+  config: Record<string, unknown>;
+  isScreener: boolean;
+  displayLogic: Condition | null;
+}
+
+export interface FlowBlock {
+  code: string;
+  rotationGroup: string | null;
+  displayLogic: Condition | null;
+  questions: FlowQuestion[];
+}
+
+export interface FlowAssignment {
+  name: string;
+  values: string[];
+  pick: number;
+  stratifyBy: string[];
+}
+
+export interface FlowSurvey {
+  id: string;
+  blocks: FlowBlock[];
+  assignments: FlowAssignment[];
+}
+
+/** Keys in Respondent.assignments that are not test groups. */
+export const BLOCK_ORDER_KEY = '$blockOrder';
+export const STRATA_KEY = '$strata';
+
+export interface RespondentState {
+  respondentId: string;
+  /** Answer value by question code. */
+  answers: Map<string, AnswerValue>;
+  /** Respondent.assignments: test groups plus the block order and strata. */
+  assignments: Record<string, unknown>;
+}
+
+/** A question as shown to the respondent: piped, randomised, without internal fields. */
+export interface PresentedQuestion {
+  code: string;
+  type: QuestionType;
+  text: string;
+  config: Record<string, unknown>;
+}

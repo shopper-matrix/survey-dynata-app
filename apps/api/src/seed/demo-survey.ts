@@ -272,6 +272,7 @@ export const demoBlocks: DemoBlock[] = [
       q('C9', 'timed_exposure', 'What kind of product was that?', {
         stimuli: packs,
         exposureMs: 3000,
+        assignment: 'pack',
         options: options(
           ['bar', 'A bar'],
           ['cereal', 'Muesli or cereal'],
@@ -336,5 +337,7 @@ export const demoDefinition: SurveyDefinitionInput = {
     targetCompletes: demoSurvey.targetCompletes,
   },
   blocks: demoBlocks,
+  // Split cell for C9: each respondent sees one of the two packs.
+  assignments: [{ name: 'pack', values: packs.map((pack) => pack.id) }],
   quotas: demoQuotaCells,
 };

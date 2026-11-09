@@ -169,12 +169,14 @@ export const questionConfigSchemas = {
 
   /**
    * Show one stimulus for `exposureMs`, then ask a single-choice question and record the
-   * response time. Several stimuli = split cells; the respondent's assignment picks one.
+   * response time. Several stimuli = split cells: `assignment` names the test group whose
+   * value is the stimulus id to show (without it, the first stimulus is shown).
    */
   timed_exposure: z.object({
     stimuli,
     exposureMs: z.int().min(500).max(30_000),
     options,
+    assignment: z.string().min(1).optional(),
   }),
 } satisfies Record<QuestionType, z.ZodType>;
 

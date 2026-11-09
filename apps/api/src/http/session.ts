@@ -1,4 +1,4 @@
-import type { FastifyReply } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 /** Signed cookie holding the respondent's ID (signature: SESSION_SECRET via @fastify/cookie). */
 export const SESSION_COOKIE = 'respondent';
@@ -17,4 +17,12 @@ export function startRespondentSession(
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
+}
+
+/** The respondent ID from a valid signed session cookie, or null. */
+export function respondentIdFromSession(request: FastifyRequest): string | null {
+  const raw = request.cookies[SESSION_COOKIE];
+  if (!raw) return null;
+  const { valid, value } = request.unsignCookie(raw);
+  return valid ? value : null;
 }

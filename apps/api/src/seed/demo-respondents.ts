@@ -1,7 +1,9 @@
+import type { AnswerValue } from '@survey-dynata/shared';
 import type { DeviceType, RespondentStatus } from '@survey-dynata/shared/db';
-import { answerFor, type AnswerValue } from './demo-answers.js';
+import { BLOCK_ORDER_KEY } from '../survey-flow/types.js';
+import { answerFor } from './demo-answers.js';
 import { demoBlocks, packs, type DemoQuestion } from './demo-survey.js';
-import { createRandom, type Random } from './random.js';
+import { createRandom, type Random } from '../lib/random.js';
 
 // 50 fake respondents across every outcome, with answers that match their status.
 // Fixed seed and dates: the output is identical on every run.
@@ -35,7 +37,8 @@ export interface DemoRespondent {
   startedAt: Date;
   endedAt: Date | null;
   qualityFlags: string[];
-  assignments: { blockOrder: string[]; packVariant: string };
+  /** Same shape the flow engine stores: block order plus test groups. */
+  assignments: Record<string, unknown>;
   answers: DemoAnswer[];
 }
 
@@ -134,7 +137,7 @@ export function buildDemoRespondents(seed = 2026): DemoRespondent[] {
     const secondsPerQuestion = qualityIssue === 'speeder' ? 5 : rng.int(15, 35);
     let clock = startedAt.getTime();
 
-    const answers = questions.flatMap((question): DemoAnswer[] => {
+    const answers = questions.map((question): DemoAnswer => {
       clock += (secondsPerQuestion + rng.int(-4, 4)) * 1000;
       const value =
         screeningAnswer(question.code, gender, screenOutAt, rng) ??
@@ -145,15 +148,12 @@ export function buildDemoRespondents(seed = 2026): DemoRespondent[] {
           failAttention: qualityIssue === 'attention_check',
           packVariant,
         });
-      if (value === null) return [];
-      return [
-        {
-          questionCode: question.code,
-          value,
-          responseTimeMs: question.type === 'timed_exposure' ? rng.int(600, 2500) : null,
-          answeredAt: new Date(clock),
-        },
-      ];
+      return {
+        questionCode: question.code,
+        value,
+        responseTimeMs: question.type === 'timed_exposure' ? rng.int(600, 2500) : null,
+        answeredAt: new Date(clock),
+      };
     });
 
     const finished = status !== 'started' && status !== 'abandoned';
@@ -164,7 +164,7 @@ export function buildDemoRespondents(seed = 2026): DemoRespondent[] {
       startedAt,
       endedAt: finished ? new Date(clock + 2000) : null,
       qualityFlags: qualityIssue ? [qualityIssue] : [],
-      assignments: { blockOrder, packVariant },
+      assignments: { [BLOCK_ORDER_KEY]: ['A', ...blockOrder, 'D'], pack: packVariant },
       answers,
     };
   });

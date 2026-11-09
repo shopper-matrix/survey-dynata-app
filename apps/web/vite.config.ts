@@ -19,14 +19,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: usePolling ? { usePolling: true, interval: 300 } : {},
-    // One address in development, as in production: the API also serves the survey entry links
-    // (/s/…) and the mock Dynata end page. Regex keys: '/s' alone would also match '/survey'.
+    // One address in development, as in production: the API serves /api/…, the survey entry
+    // links (/s/…) and the mock Dynata end page. Regex keys: '/s' alone would also match '/survey'.
     proxy: {
-      '/api': {
-        target: apiTarget,
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+      '/api': { target: apiTarget },
       '^/s/': { target: apiTarget },
       '^/mock-dynata/': { target: apiTarget },
     },

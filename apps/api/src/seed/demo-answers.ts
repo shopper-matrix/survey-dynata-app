@@ -1,9 +1,9 @@
-import { parseQuestionConfig } from '@survey-dynata/shared';
+import { parseQuestionConfig, type AnswerValue } from '@survey-dynata/shared';
+import type { Random } from '../lib/random.js';
 import { attentionCheck, type DemoQuestion } from './demo-survey.js';
-import type { Random } from './random.js';
 
-// Plausible answer values per question type. The answer format becomes a shared, validated
-// schema with the answer API (DSA-306); until then this file is its reference.
+// Plausible answer values per question type, in the shared answer format
+// (packages/shared/src/answers.ts); tests check every generated answer against it.
 
 export interface AnswerContext {
   rng: Random;
@@ -16,8 +16,6 @@ export interface AnswerContext {
   packVariant: string;
 }
 
-export type AnswerValue = Record<string, unknown>;
-
 const ids = (items: { id: string }[]) => items.map((item) => item.id);
 
 function pickOptions(
@@ -28,13 +26,13 @@ function pickOptions(
   return rng.sample(ids(regular), rng.int(1, Math.min(3, regular.length)));
 }
 
-/** Answer to a question, or null for screens without an answer (info). */
-export function answerFor(question: DemoQuestion, ctx: AnswerContext): AnswerValue | null {
+/** A plausible answer to a question. */
+export function answerFor(question: DemoQuestion, ctx: AnswerContext): AnswerValue {
   const { rng } = ctx;
 
   switch (question.type) {
     case 'info':
-      return null;
+      return { seen: true };
 
     case 'single_choice': {
       const { options } = parseQuestionConfig('single_choice', question.config);

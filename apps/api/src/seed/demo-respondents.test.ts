@@ -1,6 +1,7 @@
+import { answerSchema } from '@survey-dynata/shared';
 import { describe, expect, it } from 'vitest';
 import { buildDemoRespondents, RESPONDENT_MIX } from './demo-respondents.js';
-import { demoQuotaCells } from './demo-survey.js';
+import { demoBlocks, demoQuotaCells } from './demo-survey.js';
 
 const respondents = buildDemoRespondents();
 const byStatus = (status: string) => respondents.filter((r) => r.status === status);
@@ -8,6 +9,21 @@ const answered = (respondent: (typeof respondents)[number]) =>
   respondent.answers.map((answer) => answer.questionCode);
 
 describe('demo respondents', () => {
+  it('only gives answers in the shared answer format', () => {
+    const questions = new Map(demoBlocks.flatMap((b) => b.questions.map((q) => [q.code, q])));
+    for (const respondent of respondents) {
+      for (const answer of respondent.answers) {
+        const question = questions.get(answer.questionCode);
+        if (!question) throw new Error(`Unknown question ${answer.questionCode}`);
+        const result = answerSchema(question.type, question.config).safeParse(answer.value);
+        expect(
+          result.error?.issues,
+          `${respondent.panelRespondentId} ${answer.questionCode}`,
+        ).toBeUndefined();
+      }
+    }
+  });
+
   it('creates 50 respondents with obviously fake, unique IDs', () => {
     expect(respondents).toHaveLength(50);
     expect(respondents.every((r) => /^TEST-\d{4}$/.test(r.panelRespondentId))).toBe(true);

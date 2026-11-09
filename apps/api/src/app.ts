@@ -5,6 +5,7 @@ import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { registerEntryRoute } from './routes/entry.js';
 import { registerHealthRoute } from './routes/health.js';
+import { registerSessionRoutes } from './routes/session.js';
 
 export interface AppDependencies {
   db: PrismaClient;
@@ -25,6 +26,7 @@ export async function buildApp({
 
   registerHealthRoute(app, db);
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
+  registerSessionRoutes(app, db);
 
   return app;
 }
