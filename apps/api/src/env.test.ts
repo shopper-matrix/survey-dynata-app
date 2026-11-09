@@ -14,6 +14,7 @@ describe('loadEnv', () => {
       ...required,
       NODE_ENV: 'development',
       PORT: 3000,
+      ADMIN_SESSION_IDLE_MINUTES: 30,
       DYNATA_MODE: 'mock',
       DYNATA_API_URL,
     });

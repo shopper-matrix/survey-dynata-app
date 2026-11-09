@@ -19,6 +19,13 @@ const envSchema = z
     SESSION_SECRET: z
       .string({ error: 'is required' })
       .min(32, 'must be at least 32 characters (use a long random value)'),
+    /** Admin sessions end after this many minutes without activity. */
+    ADMIN_SESSION_IDLE_MINUTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 60)
+      .default(30),
     ...dynataEnvShape,
   })
   .superRefine(checkDynataEnv);

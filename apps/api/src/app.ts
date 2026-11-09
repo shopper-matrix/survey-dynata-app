@@ -1,16 +1,19 @@
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import type { PrismaClient } from '@survey-dynata/shared/db/client';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
+import { registerAdminAuthRoutes } from './routes/admin-auth.js';
 import { registerEntryRoute } from './routes/entry.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerSessionRoutes } from './routes/session.js';
 
 export interface AppDependencies {
   db: PrismaClient;
-  env: Pick<Env, 'APP_BASE_URL' | 'SESSION_SECRET'>;
+  env: Pick<Env, 'APP_BASE_URL' | 'SESSION_SECRET'> &
+    Partial<Pick<Env, 'ADMIN_SESSION_IDLE_MINUTES'>>;
   provider: SampleProvider;
   logger?: boolean;
 }
@@ -24,11 +27,19 @@ export async function buildApp({
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({ logger });
   await app.register(cookie, { secret: env.SESSION_SECRET });
+  // Opt-in per route (login, entry links).
+  await app.register(rateLimit, { global: false });
+  const secureCookies = env.APP_BASE_URL.startsWith('https://');
 
   registerHealthRoute(app, db);
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
   registerSessionRoutes(app, { db, provider, beforeEnd: applyQuotasOnComplete });
   provider.registerRoutes?.(app);
+  registerAdminAuthRoutes(app, {
+    db,
+    secureCookies,
+    idleMinutes: env.ADMIN_SESSION_IDLE_MINUTES ?? 30,
+  });
 
   return app;
 }

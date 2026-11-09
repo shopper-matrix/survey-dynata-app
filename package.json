@@ -18,7 +18,8 @@
     "db:migrate": "pnpm --filter @survey-dynata/api db:migrate",
     "db:deploy": "pnpm --filter @survey-dynata/api db:deploy",
     "db:seed": "pnpm --filter @survey-dynata/api db:seed",
-    "survey:import": "pnpm --filter @survey-dynata/api survey:import"
+    "survey:import": "pnpm --filter @survey-dynata/api survey:import",
+    "admin:create": "pnpm --filter @survey-dynata/api admin:create"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
