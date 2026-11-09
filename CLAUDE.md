@@ -80,7 +80,11 @@ docker compose down -v       # wipe the local database
 ## Status and deviations from the guide
 
 - Done: DSA-101 … DSA-104 (committed before the Conventional Commits rule; messages not rewritten).
-- Next: DSA-105 (UI prototype in code).
+- DSA-105 done: clickable prototype with fake data in `apps/web/src/prototype/` (React Router,
+  shadcn/ui radix-nova preset, Tailwind v4). It is the design reference for DSA-401. Replace
+  prototype screens with real ones as features land, and delete them once unused.
+- Next: DSA-106 (Dynata specs + mock Dynata mode).
+- Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
 - Deviations to keep in mind:
   - The API is currently a plain `node:http` server. Fastify comes in with the first real routes.
   - Postgres is 18 (guide: 16).
