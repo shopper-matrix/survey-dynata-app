@@ -12,12 +12,13 @@ import {
 } from '../api';
 import { SurveyStatusBadge } from '../StatusBadge';
 import { describeFailure, withConfirmation } from './changes';
+import { DashboardPanel } from '../dashboard/DashboardPanel';
 import { DynataSettingsPanel } from './DynataSettingsPanel';
 import { QuestionEditor } from './QuestionEditor';
 import { QuestionList } from './QuestionList';
 import { QuotaEditor } from './QuotaEditor';
 
-const TABS = ['Questions', 'Quotas', 'Dynata'] as const;
+const TABS = ['Questions', 'Quotas', 'Dashboard', 'Dynata'] as const;
 type Tab = (typeof TABS)[number];
 
 const NEXT_STATUS: Record<SurveyStatus, { status: SurveyStatus; label: string }[]> = {
@@ -174,6 +175,12 @@ export default function SurveyBuilderPage() {
               )
             }
           />
+        </div>
+      ) : null}
+
+      {tab === 'Dashboard' ? (
+        <div role="tabpanel" aria-label="Dashboard" className="mt-6">
+          <DashboardPanel surveyId={id} canEdit={canEdit} />
         </div>
       ) : null}
 

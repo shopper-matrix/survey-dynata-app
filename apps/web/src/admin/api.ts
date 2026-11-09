@@ -42,6 +42,32 @@ export interface DynataSettings {
 
 export type QuestionInput = SurveyDefinitionInput['blocks'][number]['questions'][number];
 
+export type RespondentStatus =
+  'started' | 'complete' | 'screenout' | 'overquota' | 'quality' | 'abandoned';
+
+export interface FieldworkStats {
+  counters: {
+    starts: number;
+    completes: number;
+    screenouts: number;
+    overquotas: number;
+    qualityTerms: number;
+    incidenceRate: number | null;
+    medianLoiMinutes: number | null;
+  };
+  completesPerDay: { day: string; completes: number }[];
+  quotas: { name: string; kind: 'cap' | 'minimum'; target: number; currentCount: number }[];
+  recent: {
+    panelRespondentId: string;
+    status: RespondentStatus;
+    startedAt: string;
+    endedAt: string | null;
+    deviceType: string | null;
+    qualityFlags: string[];
+  }[];
+  updatedAt: string;
+}
+
 export class AdminApiError extends Error {
   constructor(
     readonly status: number,
@@ -136,6 +162,14 @@ export const adminApi = {
       'DELETE',
       withConfirm(`${survey(id)}/quotas/${encodeURIComponent(name)}`, confirm),
     ),
+
+  stats: (id: string) => request<FieldworkStats>('GET', `${survey(id)}/stats`),
+  testLinks: (id: string, count: number) =>
+    request<{ links: string[] }>('POST', `${survey(id)}/test-links`, { count }),
+  deleteTestData: (id: string) => request<{ deleted: number }>('DELETE', `${survey(id)}/test-data`),
+  /** Download URL (the browser sends the session cookie). */
+  exportUrl: (id: string, format: 'csv' | 'sav') =>
+    `/api/admin${survey(id)}/export?format=${format}`,
 
   dynata: (id: string) => request<DynataSettings>('GET', `${survey(id)}/dynata`),
   saveDynata: (id: string, projectId: string) =>

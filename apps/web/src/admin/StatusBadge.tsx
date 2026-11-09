@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import type { SurveyStatus } from './api';
+import type { RespondentStatus, SurveyStatus } from './api';
 
 // Survey status colours (guide): green live, amber test, grey draft, blue closed. Text/background
 // pairs meet WCAG AA in light and dark mode (checked in DSA-105).
@@ -44,5 +44,27 @@ export function SurveyStatusBadge({
         </Badge>
       ) : null}
     </span>
+  );
+}
+
+// Guide: green complete, amber in progress, grey screen-out, red quality term.
+const RESPONDENT_STYLES: Record<RespondentStatus, { label: string; className: string }> = {
+  complete: { label: 'Complete', className: STYLES.live.className },
+  started: { label: 'In progress', className: STYLES.test.className },
+  screenout: { label: 'Screen-out', className: STYLES.draft.className },
+  overquota: { label: 'Over-quota', className: STYLES.closed.className },
+  quality: {
+    label: 'Quality term',
+    className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  },
+  abandoned: { label: 'Dropped out', className: STYLES.draft.className },
+};
+
+export function RespondentStatusBadge({ status }: { status: RespondentStatus }) {
+  const style = RESPONDENT_STYLES[status];
+  return (
+    <Badge variant="outline" className={`border-transparent ${style.className}`}>
+      {style.label}
+    </Badge>
   );
 }

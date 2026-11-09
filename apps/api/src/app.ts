@@ -9,6 +9,7 @@ import { requireAdmin } from './admin/auth.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
 import { registerAdminAuthRoutes } from './routes/admin-auth.js';
 import { registerAdminExportRoutes } from './routes/admin-export.js';
+import { registerAdminStatsRoutes } from './routes/admin-stats.js';
 import { registerAdminSurveyRoutes } from './routes/admin-surveys.js';
 import { registerAdminTestLinkRoutes } from './routes/admin-test-links.js';
 import { registerEntryRoute } from './routes/entry.js';
@@ -54,6 +55,7 @@ export async function buildApp({
   });
   registerAdminTestLinkRoutes(app, { db, provider, appBaseUrl: env.APP_BASE_URL, idleMinutes });
   registerAdminExportRoutes(app, { db, idleMinutes });
+  registerAdminStatsRoutes(app, { db, idleMinutes });
   registerTestEndPage(app);
 
   return app;

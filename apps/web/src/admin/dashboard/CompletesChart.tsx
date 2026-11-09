@@ -7,20 +7,23 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { completesPerDay } from '../fake-data';
 
 /** Completes per day; colours come from the theme tokens so it works in light and dark. */
-export function CompletesChart() {
+export function CompletesChart({ data }: { data: { day: string; completes: number }[] }) {
+  if (data.length === 0) {
+    return <p className="text-sm text-muted-foreground">No completes yet.</p>;
+  }
   return (
-    <div className="h-64" role="img" aria-label="Completes per day over the last 14 days">
+    <div className="h-64" role="img" aria-label="Completes per day">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={completesPerDay} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+        <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="day"
             tickLine={false}
             axisLine={false}
             tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+            tickFormatter={(day: string) => day.slice(5)}
             interval="preserveStartEnd"
           />
           <YAxis

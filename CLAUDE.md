@@ -104,9 +104,8 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
 ## Status and deviations from the guide
 
 - Done: DSA-101 … DSA-104 (committed before the Conventional Commits rule; messages not rewritten).
-- DSA-105 done: clickable prototype with fake data in `apps/web/src/prototype/` (React Router,
-  shadcn/ui radix-nova preset, Tailwind v4). It is the design reference for DSA-401. Replace
-  prototype screens with real ones as features land, and delete them once unused.
+- DSA-105 done: clickable prototype (shadcn/ui radix-nova preset, Tailwind v4); it was the design
+  reference and was deleted in DSA-605 once every screen had a real counterpart.
 - DSA-106 is postponed (user's decision); mock Dynata mode still applies.
 - DSA-201 done: Prisma schema + first migration; CI runs `migrate deploy` and DB tests against a
   Postgres service.
@@ -136,10 +135,12 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
-  (`dynata/admin-routes.ts`). Next: DSA-605 (live dashboard).
+  (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
+  test respondents excluded; incidence = completes / (completes + screen-outs)).
+  Next: M5 (DSA-501 quality checks).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
