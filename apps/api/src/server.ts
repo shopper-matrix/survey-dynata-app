@@ -1,14 +1,20 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import pg from 'pg';
+import { EnvValidationError, loadEnv, type Env } from './env.js';
 import { getHealth } from './health.js';
 
-const port = Number(process.env.PORT ?? 3000);
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL is not set');
+let env: Env;
+try {
+  env = loadEnv();
+} catch (error) {
+  if (error instanceof EnvValidationError) {
+    console.error(`${error.message}\nSee .env.example for every variable and its meaning.`);
+    process.exit(1);
+  }
+  throw error;
 }
 
-const pool = new pg.Pool({ connectionString: databaseUrl });
+const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
 // An idle client losing its connection must not crash the process.
 pool.on('error', (error) => {
   console.error('Postgres pool error:', error.message);
@@ -37,8 +43,8 @@ const server = createServer((req, res) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`API listening on http://localhost:${String(port)}`);
+server.listen(env.PORT, () => {
+  console.log(`API listening on http://localhost:${String(env.PORT)} (${env.NODE_ENV})`);
 });
 
 function shutdown(): void {
