@@ -89,6 +89,8 @@ model Survey {
   estimatedMinutes Int?
   privacyNotice    String?
   privacyPolicyUrl String?
+  /// Per language: { title, intro, privacyNotice }. A language is offered when it is here.
+  translations     Json         @default("{}")
   targetCompletes Int
   language        String       @default("en")
   /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.
@@ -150,6 +152,8 @@ model Question {
   displayLogic     Json?
   /// Programming notes for what the engine cannot express yet.
   notes            String[]     @default([])
+  /// Per language: { text, labels: { <option/row/item id or field>: label } }.
+  translations     Json         @default("{}")
 
   survey         Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   block          Block           @relation(fields: [blockId], references: [id], onDelete: Cascade)
@@ -194,6 +198,8 @@ model Respondent {
   isTest            Boolean          @default(false)
   /// When the respondent accepted the welcome / privacy screen (passed the bot check).
   consentedAt       DateTime?
+  /// Language chosen at entry (link parameter or browser), one the survey offers.
+  language          String?
   startedAt         DateTime         @default(now())
   endedAt           DateTime?
   deviceType        DeviceType?

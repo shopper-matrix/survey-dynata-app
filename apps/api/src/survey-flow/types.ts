@@ -1,4 +1,4 @@
-import type { AnswerValue, Condition } from '@survey-dynata/shared';
+import type { AnswerValue, Condition, QuestionTranslations } from '@survey-dynata/shared';
 import type { QuestionType } from '@survey-dynata/shared/db';
 
 // The survey as the flow engine sees it: plain data, loaded once per request.
@@ -13,6 +13,7 @@ export interface FlowQuestion {
   displayLogic: Condition | null;
   /** Screening rules: the respondent is screened out when one matches after answering. */
   screenOutRules: Condition[];
+  translations: QuestionTranslations;
 }
 
 export interface FlowBlock {
@@ -31,6 +32,8 @@ export interface FlowAssignment {
 
 export interface FlowSurvey {
   id: string;
+  /** Main language; translations add others. */
+  language: string;
   blocks: FlowBlock[];
   assignments: FlowAssignment[];
 }
@@ -45,6 +48,8 @@ export interface RespondentState {
   answers: Map<string, AnswerValue>;
   /** Respondent.assignments: test groups plus the block order and strata. */
   assignments: Record<string, unknown>;
+  /** Language for question texts; null = the survey's main language. */
+  language: string | null;
 }
 
 /** A question as shown to the respondent: piped, randomised, without internal fields. */

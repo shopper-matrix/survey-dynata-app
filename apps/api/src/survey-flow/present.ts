@@ -1,4 +1,4 @@
-import { chosenIds } from '@survey-dynata/shared';
+import { chosenIds, translateQuestion } from '@survey-dynata/shared';
 import { randomFromText } from '../lib/random.js';
 import type { FlowQuestion, PresentedQuestion, RespondentState } from './types.js';
 
@@ -84,8 +84,14 @@ export function presentQuestion(
     config.stimuli = shown ? [shown] : [];
   }
 
+  const translated = translateQuestion(
+    question.text,
+    config,
+    question.translations,
+    state.language,
+  );
   return {
     kind: 'question',
-    question: { code: question.code, type: question.type, text: question.text, config },
+    question: { code: question.code, type: question.type, ...translated },
   };
 }

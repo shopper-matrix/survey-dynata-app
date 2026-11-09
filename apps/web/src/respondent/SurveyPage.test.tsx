@@ -143,3 +143,14 @@ describe('SurveyPage flow (DSA-404)', () => {
     );
   });
 });
+
+describe('SurveyPage languages (DSA-406)', () => {
+  it('shows the interface in the language the server chose', async () => {
+    stubApi({
+      questions: { ...welcome, language: 'de', welcome: { ...welcome.welcome, language: 'de' } },
+    });
+    render(<SurveyPage />);
+    expect(await screen.findByRole('button', { name: 'Starten' })).toBeDefined();
+    expect(screen.getByText('Etwa 15 Minuten')).toBeDefined();
+  });
+});

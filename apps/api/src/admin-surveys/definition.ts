@@ -1,7 +1,9 @@
 import {
   surveyDefinitionSchema,
   type Condition,
+  type QuestionTranslations,
   type SurveyDefinitionInput,
+  type SurveyTranslations,
 } from '@survey-dynata/shared';
 import type { Prisma } from '@survey-dynata/shared/db/client';
 import type { z } from 'zod';
@@ -46,6 +48,7 @@ export async function exportDefinition(
       ...(survey.estimatedMinutes ? { estimatedMinutes: survey.estimatedMinutes } : {}),
       ...(survey.privacyNotice ? { privacyNotice: survey.privacyNotice } : {}),
       ...(survey.privacyPolicyUrl ? { privacyPolicyUrl: survey.privacyPolicyUrl } : {}),
+      translations: survey.translations as SurveyTranslations,
     },
     assignments: survey.assignments as SurveyDefinitionInput['assignments'],
     blocks: survey.blocks.map((block) => ({
@@ -61,6 +64,7 @@ export async function exportDefinition(
         isScreener: question.isScreener,
         isAttentionCheck: question.isAttentionCheck,
         notes: question.notes,
+        translations: question.translations as QuestionTranslations,
         ...condition(question.displayLogic),
         // The import format holds one screen-out condition per question.
         ...(question.screeningRules[0]

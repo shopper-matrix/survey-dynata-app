@@ -1,4 +1,9 @@
-import { assignmentSchema, conditionSchema, type AnswerValue } from '@survey-dynata/shared';
+import {
+  assignmentSchema,
+  conditionSchema,
+  questionTranslationsSchema,
+  type AnswerValue,
+} from '@survey-dynata/shared';
 import type { PrismaClient } from '@survey-dynata/shared/db/client';
 import { z } from 'zod';
 import type { FlowSurvey, RespondentState } from './types.js';
@@ -10,6 +15,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
     where: { id: surveyId },
     select: {
       id: true,
+      language: true,
       assignments: true,
       blocks: {
         orderBy: { position: 'asc' },
@@ -24,6 +30,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
   });
   return {
     id: survey.id,
+    language: survey.language,
     assignments: z.array(assignmentSchema).parse(survey.assignments),
     blocks: survey.blocks.map((block) => ({
       code: block.code,
@@ -40,6 +47,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
         screenOutRules: question.screeningRules.map((rule) =>
           conditionSchema.parse(rule.condition),
         ),
+        translations: questionTranslationsSchema.parse(question.translations),
       })),
     })),
   };
@@ -47,7 +55,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
 
 export async function loadRespondentState(
   db: PrismaClient,
-  respondent: { id: string; assignments: unknown },
+  respondent: { id: string; assignments: unknown; language?: string | null },
 ): Promise<RespondentState> {
   const answers = await db.answer.findMany({
     where: { respondentId: respondent.id },
@@ -57,5 +65,6 @@ export async function loadRespondentState(
     respondentId: respondent.id,
     answers: new Map(answers.map((answer) => [answer.question.code, answer.value as AnswerValue])),
     assignments: { ...(respondent.assignments as Record<string, unknown>) },
+    language: respondent.language ?? null,
   };
 }

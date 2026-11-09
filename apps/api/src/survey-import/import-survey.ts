@@ -46,6 +46,7 @@ export async function importSurvey(
       estimatedMinutes: definition.survey.estimatedMinutes ?? null,
       privacyNotice: definition.survey.privacyNotice ?? null,
       privacyPolicyUrl: definition.survey.privacyPolicyUrl ?? null,
+      translations: json(definition.survey.translations),
       assignments: json(definition.assignments),
     },
   });
@@ -75,6 +76,7 @@ export async function importSurvey(
         isScreener: question.isScreener,
         isAttentionCheck: question.isAttentionCheck,
         notes: question.notes,
+        translations: json(question.translations),
         ...(question.displayLogic ? { displayLogic: json(question.displayLogic) } : {}),
       })),
     ),

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PrimaryButton } from '@/components/survey/PrimaryButton';
 import { SurveyLayout } from '@/components/survey/SurveyLayout';
 import { ApiError, sessionApi, type Screen } from './api';
 import { EndView } from './EndView';
-import { en } from './messages';
+import { messagesFor } from './messages';
 import { QuestionView } from './QuestionView';
 import { WelcomeView } from './WelcomeView';
 
@@ -12,13 +12,16 @@ import { WelcomeView } from './WelcomeView';
  * session cookie set by the entry link identifies the respondent.
  */
 export function SurveyPage() {
-  const t = en;
   const [screen, setScreen] = useState<Screen | null>(null);
+  // The language is decided by the server at entry; until the first screen, the browser's.
+  const [language, setLanguage] = useState(() => navigator.language.slice(0, 2));
+  const t = useMemo(() => messagesFor(language), [language]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const show = useCallback((next: Screen) => {
     setScreen(next);
+    if (!next.done && next.language) setLanguage(next.language);
   }, []);
 
   const run = useCallback(

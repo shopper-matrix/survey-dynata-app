@@ -428,3 +428,35 @@ describe('welcome and consent (DSA-402)', () => {
     }
   });
 });
+
+describe('languages (DSA-406)', () => {
+  it('shows the welcome screen and questions in the respondent’s language', async () => {
+    await db.survey.update({
+      where: { id: surveyId },
+      data: { translations: { de: { title: 'Sitzungstest', intro: 'Hallo' } } },
+    });
+    await db.question.updateMany({
+      where: { surveyId, code: 'S1' },
+      data: { translations: { de: { text: 'Welche Riegel?', labels: { '1': 'Option eins' } } } },
+    });
+    const respondent = await db.respondent.create({
+      data: { surveyId, panelRespondentId: `L-${randomUUID()}`, language: 'de' },
+    });
+    const headers = { cookie: `${SESSION_COOKIE}=${app.signCookie(respondent.id)}` };
+
+    const welcome = (await app.inject({ url: '/api/session/questions', headers })).json<{
+      language: string;
+      welcome: { title: string; intro: string };
+    }>();
+    expect(welcome.language).toBe('de');
+    expect(welcome.welcome).toMatchObject({ title: 'Sitzungstest', intro: 'Hallo' });
+
+    const first = (await app.inject({ method: 'POST', url: '/api/session/start', headers })).json<{
+      language: string;
+      question: { text: string; config: { options: { id: string; label: string }[] } };
+    }>();
+    expect(first.language).toBe('de');
+    expect(first.question.text).toBe('Welche Riegel?');
+    expect(first.question.config.options[0]).toEqual({ id: '1', label: 'Option eins' });
+  });
+});

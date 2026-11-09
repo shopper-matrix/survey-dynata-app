@@ -4,6 +4,7 @@ import {
   conditionSchema,
   questionDefinitionSchema,
   quotaDefinitionSchema,
+  surveyTranslationsSchema,
   welcomeShape,
 } from '@survey-dynata/shared';
 import { SurveyStatus } from '@survey-dynata/shared/db';
@@ -46,6 +47,7 @@ const surveyPatchSchema = z.strictObject({
   status: z.enum(SurveyStatus).optional(),
   notes: z.array(z.string().min(1)).optional(),
   assignments: z.array(assignmentSchema).optional(),
+  translations: surveyTranslationsSchema.optional(),
   ...welcomeShape,
 });
 
@@ -181,7 +183,7 @@ export function registerAdminSurveyRoutes(
   app.patch('/api/admin/surveys/:id', editor, async (request, reply) => {
     const body = surveyPatchSchema.safeParse(request.body);
     if (!body.success) return fail(reply, 400, 'invalid_request', body.error.issues);
-    const { assignments, ...data } = body.data;
+    const { assignments, translations, ...data } = body.data;
     return mutate(request, reply, 'survey_updated', async (tx, surveyId) => {
       const current = await tx.survey.findUniqueOrThrow({ where: { id: surveyId } });
       if (
@@ -196,6 +198,7 @@ export function registerAdminSurveyRoutes(
         data: {
           ...withoutUndefined(data),
           ...(assignments ? { assignments: json(assignments) } : {}),
+          ...(translations ? { translations: json(translations) } : {}),
         },
       });
     });
@@ -470,6 +473,7 @@ async function writeQuestion(
     isScreener: question.isScreener,
     isAttentionCheck: question.isAttentionCheck,
     notes: question.notes,
+    translations: json(question.translations),
     displayLogic: question.displayLogic ? json(question.displayLogic) : Prisma.DbNull,
   };
   const saved = existingId

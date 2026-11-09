@@ -7,6 +7,7 @@ import {
   type Condition,
 } from './conditions.js';
 import { questionConfigSchemas } from './questions/config.js';
+import { questionTranslationsSchema, surveyTranslationsSchema } from './translations.js';
 
 // File format for a whole survey (`pnpm survey:import <file>`): blocks, questions, screening,
 // quotas and random test-group assignments. Validated completely before anything is written.
@@ -39,6 +40,7 @@ export const questionDefinitionSchema = z
     screenOut: conditionSchema.optional(),
     /** Programming notes for what the engine can't express yet. */
     notes: z.array(z.string().min(1)).default([]),
+    translations: questionTranslationsSchema.default({}),
   })
   .transform((question, ctx) => {
     const parsed = questionConfigSchemas[question.type].safeParse(question.config);
@@ -85,6 +87,7 @@ export const surveyDefinitionSchema = z
       targetCompletes: z.int().min(1),
       notes: z.array(z.string().min(1)).default([]),
       ...welcomeShape,
+      translations: surveyTranslationsSchema.default({}),
     }),
     assignments: z.array(assignmentSchema).default([]),
     blocks: z.array(blockDefinitionSchema).min(1),

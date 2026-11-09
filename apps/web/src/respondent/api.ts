@@ -19,8 +19,8 @@ export interface PresentedQuestion {
 }
 
 export type Screen =
-  | { done: false; welcome: Welcome }
-  | { done: false; question: PresentedQuestion; progress: number }
+  | { done: false; language?: string; welcome: Welcome }
+  | { done: false; language?: string; question: PresentedQuestion; progress: number }
   | { done: true; outcome?: string; redirectUrl?: string };
 
 export class ApiError extends Error {

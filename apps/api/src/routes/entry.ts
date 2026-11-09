@@ -1,3 +1,4 @@
+import { chooseLanguage } from '@survey-dynata/shared';
 import type { Respondent } from '@survey-dynata/shared/db';
 import { Prisma, type PrismaClient } from '@survey-dynata/shared/db/client';
 import type { FastifyInstance, FastifyReply } from 'fastify';
@@ -53,7 +54,7 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
     const survey = params.success
       ? await db.survey.findUnique({
           where: { id: params.data.surveyId },
-          select: { id: true, status: true, pausedAt: true },
+          select: { id: true, status: true, pausedAt: true, language: true, translations: true },
         })
       : null;
     if (!survey) return sendPage(reply, 404, pages.surveyNotFound);
@@ -98,6 +99,12 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
           panelRespondentId,
           isTest: survey.status === 'test' || isTestRespondentId(panelRespondentId),
           deviceType: deviceTypeFromUserAgent(request.headers['user-agent']),
+          language: chooseLanguage(
+            [survey.language, ...Object.keys(survey.translations as Record<string, unknown>)],
+            survey.language,
+            new URL(entryUrl).searchParams.get('lang'),
+            request.headers['accept-language'],
+          ),
         },
       });
       startRespondentSession(reply, respondent.id, { secure });

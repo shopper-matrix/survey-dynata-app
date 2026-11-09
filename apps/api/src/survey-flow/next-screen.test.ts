@@ -21,6 +21,7 @@ function question(code: string, overrides: Partial<FlowQuestion> = {}): FlowQues
     isScreener: false,
     displayLogic: null,
     screenOutRules: [],
+    translations: {},
     ...overrides,
   };
 }
@@ -35,6 +36,7 @@ function block(
 
 const survey: FlowSurvey = {
   id: 's',
+  language: 'en',
   assignments: [{ name: 'cell', values: ['A', 'B'], pick: 1, stratifyBy: [] }],
   blocks: [
     block('A', [
@@ -64,6 +66,7 @@ function state(
 ): RespondentState {
   return {
     respondentId: 'r1',
+    language: null,
     answers: new Map(Object.entries(answers)),
     assignments: { [BLOCK_ORDER_KEY]: ['A', 'B'], ...assignments },
   };
@@ -145,7 +148,7 @@ describe('block order', () => {
 
   it('follows the stored order and keeps unknown blocks in place', () => {
     const s = state({}, { [BLOCK_ORDER_KEY]: ['A', 'E', 'D'] });
-    const ordered = orderedBlocks({ id: 's', assignments: [], blocks }, s);
+    const ordered = orderedBlocks({ id: 's', language: 'en', assignments: [], blocks }, s);
     expect(ordered.map((b) => b.code)).toEqual(['A', 'E', 'D', 'F']);
   });
 });

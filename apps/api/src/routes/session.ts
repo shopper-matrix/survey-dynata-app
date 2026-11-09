@@ -1,4 +1,4 @@
-import { answerSchema, type AnswerValue } from '@survey-dynata/shared';
+import { answerSchema, surveyTranslationsSchema, type AnswerValue } from '@survey-dynata/shared';
 import type { Prisma, PrismaClient } from '@survey-dynata/shared/db/client';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -37,9 +37,10 @@ export interface SessionRouteOptions {
   beforeEnd?: OutcomeHook;
 }
 
-function screenResponse(step: FlowStep) {
+/** The next screen, with the language the respondent sees it in (for the interface texts). */
+function screenResponse(step: FlowStep, language: string) {
   if (step.kind === 'screen') {
-    return { done: false, question: step.question, progress: step.progress };
+    return { done: false, language, question: step.question, progress: step.progress };
   }
   return { done: true };
 }
@@ -60,7 +61,14 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     return respondentId
       ? db.respondent.findUnique({
           where: { id: respondentId },
-          select: { id: true, surveyId: true, status: true, assignments: true, consentedAt: true },
+          select: {
+            id: true,
+            surveyId: true,
+            status: true,
+            assignments: true,
+            consentedAt: true,
+            language: true,
+          },
         })
       : null;
   }
@@ -72,8 +80,8 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
   }
 
   /** The welcome / consent screen, shown until the respondent starts (DSA-402). */
-  async function welcome(surveyId: string) {
-    const survey = await db.survey.findUniqueOrThrow({
+  async function welcome(surveyId: string, chosen: string | null) {
+    const { translations, ...survey } = await db.survey.findUniqueOrThrow({
       where: { id: surveyId },
       select: {
         title: true,
@@ -82,20 +90,32 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
         estimatedMinutes: true,
         privacyNotice: true,
         privacyPolicyUrl: true,
+        translations: true,
       },
     });
-    return { done: false, welcome: { ...survey, botCheckSiteKey: botCheck.siteKey } };
+    const language = chosen ?? survey.language;
+    const translated = surveyTranslationsSchema.parse(translations)[language] ?? {};
+    return {
+      done: false,
+      language,
+      welcome: {
+        ...survey,
+        ...translated,
+        language,
+        botCheckSiteKey: botCheck.siteKey,
+      },
+    };
   }
 
   app.get('/api/session/questions', async (request, reply) => {
     const respondent = await sessionRespondent(request);
     if (!respondent) return fail(reply, 401, 'no_session');
     if (respondent.status !== 'started') return finished(reply, respondent.id);
-    if (!respondent.consentedAt) return welcome(respondent.surveyId);
+    if (!respondent.consentedAt) return welcome(respondent.surveyId, respondent.language);
 
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
-    return screenResponse(walk.step);
+    return screenResponse(walk.step, respondent.language ?? survey.language);
   });
 
   /** Accepts the welcome screen after the bot check; returns the first question. */
@@ -116,7 +136,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     }
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
-    return screenResponse(walk.step);
+    return screenResponse(walk.step, respondent.language ?? survey.language);
   });
 
   /** Declining on the welcome screen ends the survey as a screen-out. */
@@ -180,7 +200,10 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     if (await inFullQuota(db, respondent.surveyId, ctx)) {
       return { done: true, ...(await endSession(db, provider, respondent.id, 'overquota')) };
     }
-    return screenResponse((await resolveWalk(db, survey, state)).step);
+    return screenResponse(
+      (await resolveWalk(db, survey, state)).step,
+      respondent.language ?? survey.language,
+    );
   });
 
   /** Ends a respondent who answered everything; idempotent (same link on every call). */
