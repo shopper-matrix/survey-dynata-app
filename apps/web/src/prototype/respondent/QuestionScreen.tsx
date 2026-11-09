@@ -34,7 +34,7 @@ export function QuestionScreen({
   function handleNext() {
     setSubmitted(true);
     if (validationError === null) {
-      void navigate(nextPath ?? `/survey/${nextStep(step)}`);
+      void navigate(nextPath ?? `/prototype/survey/${nextStep(step)}`);
     }
   }
 

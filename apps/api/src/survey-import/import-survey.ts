@@ -42,6 +42,10 @@ export async function importSurvey(
       targetCompletes: definition.survey.targetCompletes,
       status: options.status ?? 'draft',
       notes: definition.survey.notes,
+      intro: definition.survey.intro ?? null,
+      estimatedMinutes: definition.survey.estimatedMinutes ?? null,
+      privacyNotice: definition.survey.privacyNotice ?? null,
+      privacyPolicyUrl: definition.survey.privacyPolicyUrl ?? null,
       assignments: json(definition.assignments),
     },
   });

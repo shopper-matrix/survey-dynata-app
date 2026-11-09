@@ -9,6 +9,7 @@ import { OpenTextQuestion } from '@/prototype/respondent/questions/OpenTextQuest
 import { RatingQuestion } from '@/prototype/respondent/questions/RatingQuestion';
 import { SingleChoiceQuestion } from '@/prototype/respondent/questions/SingleChoiceQuestion';
 import { WelcomeScreen } from '@/prototype/respondent/WelcomeScreen';
+import { SurveyPage } from '@/respondent/SurveyPage';
 
 // The admin area is loaded on demand so respondents never download it (incl. the chart library).
 const AdminLayout = lazy(() => import('@/prototype/admin/AdminLayout'));
@@ -16,9 +17,13 @@ const SurveyList = lazy(() => import('@/prototype/admin/SurveyList'));
 const Dashboard = lazy(() => import('@/prototype/admin/Dashboard'));
 
 export const routes: RouteObject[] = [
-  { path: '/', element: <PrototypeIndex /> },
+  // The real respondent survey: the entry link (/s/…) redirects here after setting the session.
+  { path: '/survey', element: <SurveyPage /> },
+
+  // UI prototype (DSA-105), the design reference until every screen has a real counterpart.
+  { path: '/prototype', element: <PrototypeIndex /> },
   {
-    path: '/survey',
+    path: '/prototype/survey',
     children: [
       { index: true, element: <Navigate to="welcome" replace /> },
       { path: 'welcome', element: <WelcomeScreen /> },
@@ -33,7 +38,7 @@ export const routes: RouteObject[] = [
     ],
   },
   {
-    path: '/admin',
+    path: '/prototype/admin',
     element: (
       <Suspense fallback={null}>
         <AdminLayout />
@@ -45,5 +50,5 @@ export const routes: RouteObject[] = [
       { path: 'dashboard', element: <Dashboard /> },
     ],
   },
-  { path: '*', element: <Navigate to="/" replace /> },
+  { path: '*', element: <Navigate to="/prototype" replace /> },
 ];

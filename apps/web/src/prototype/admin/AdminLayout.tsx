@@ -4,8 +4,8 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { ThemeToggle } from '@/app/ThemeToggle';
 
 const nav = [
-  { to: '/admin/surveys', label: 'Surveys', icon: ClipboardList },
-  { to: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
+  { to: '/prototype/admin/surveys', label: 'Surveys', icon: ClipboardList },
+  { to: '/prototype/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
 ];
 
 function navClass({ isActive }: { isActive: boolean }): string {
@@ -20,7 +20,7 @@ export default function AdminLayout() {
     <div className="min-h-svh bg-background text-foreground md:grid md:grid-cols-[14rem_1fr]">
       <aside className="border-b md:sticky md:top-0 md:h-svh md:border-r md:border-b-0">
         <div className="flex items-center justify-between gap-2 px-4 py-2 md:py-4">
-          <Link to="/" className="font-semibold">
+          <Link to="/prototype" className="font-semibold">
             Survey Admin
           </Link>
           <ThemeToggle />

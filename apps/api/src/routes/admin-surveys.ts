@@ -4,6 +4,7 @@ import {
   conditionSchema,
   questionDefinitionSchema,
   quotaDefinitionSchema,
+  welcomeShape,
 } from '@survey-dynata/shared';
 import { SurveyStatus } from '@survey-dynata/shared/db';
 import { Prisma, type PrismaClient } from '@survey-dynata/shared/db/client';
@@ -45,6 +46,7 @@ const surveyPatchSchema = z.strictObject({
   status: z.enum(SurveyStatus).optional(),
   notes: z.array(z.string().min(1)).optional(),
   assignments: z.array(assignmentSchema).optional(),
+  ...welcomeShape,
 });
 
 const blockPatchSchema = blockDefinitionSchema.omit({ code: true, questions: true }).partial();

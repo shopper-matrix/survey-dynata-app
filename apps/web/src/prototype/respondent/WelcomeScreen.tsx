@@ -12,11 +12,11 @@ export function WelcomeScreen() {
       footer={
         <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-4">
           <Button asChild size="lg" className="h-12 w-full text-base sm:w-auto sm:px-10">
-            <Link to="/survey/single">Start</Link>
+            <Link to="/prototype/survey/single">Start</Link>
           </Button>
           {/* Declining ends the survey as a screen-out (DSA-402). */}
           <Button asChild variant="ghost" size="lg" className="h-11 w-full sm:w-auto">
-            <Link to="/survey/end/screenout">No thanks</Link>
+            <Link to="/prototype/survey/end/screenout">No thanks</Link>
           </Button>
         </div>
       }

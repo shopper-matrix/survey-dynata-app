@@ -29,7 +29,10 @@ export default function SurveyList() {
       <ul className="mt-6 grid gap-3 md:hidden">
         {surveys.map((survey) => (
           <li key={survey.id}>
-            <Link to="/admin/dashboard" className="block rounded-lg border p-4 hover:bg-accent">
+            <Link
+              to="/prototype/admin/dashboard"
+              className="block rounded-lg border p-4 hover:bg-accent"
+            >
               <div className="flex items-start justify-between gap-3">
                 <span className="font-medium">{survey.title}</span>
                 <SurveyStatusBadge status={survey.status} />
@@ -58,7 +61,7 @@ export default function SurveyList() {
             {surveys.map((survey) => (
               <TableRow key={survey.id}>
                 <TableCell className="font-medium">
-                  <Link to="/admin/dashboard" className="hover:underline">
+                  <Link to="/prototype/admin/dashboard" className="hover:underline">
                     {survey.title}
                   </Link>
                 </TableCell>

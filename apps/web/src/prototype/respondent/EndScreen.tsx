@@ -37,7 +37,7 @@ export function EndScreen({ outcome }: EndScreenProps) {
         <Loader2 aria-hidden className="mt-6 size-6 animate-spin text-muted-foreground" />
         <p className="mt-8 text-sm text-muted-foreground">Not redirected?</p>
         <Button asChild variant="outline" size="lg" className="mt-2 h-11">
-          <Link to="/">Continue</Link>
+          <Link to="/prototype">Continue</Link>
         </Button>
       </div>
     </SurveyLayout>

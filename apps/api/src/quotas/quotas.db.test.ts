@@ -89,6 +89,7 @@ describe('quota engine', () => {
       data: Array.from({ length: 100 }, (_, i) => ({
         surveyId,
         panelRespondentId: `RACE-${String(i)}`,
+        consentedAt: new Date(),
       })),
     });
     await db.answer.createMany({
@@ -117,7 +118,7 @@ describe('quota engine', () => {
 
   it('ends a respondent as over-quota while answering once their cell is full', async () => {
     const respondent = await db.respondent.create({
-      data: { surveyId, panelRespondentId: `LATE-${randomUUID()}` },
+      data: { surveyId, panelRespondentId: `LATE-${randomUUID()}`, consentedAt: new Date() },
     });
     const response = await app.inject({
       method: 'POST',
@@ -131,7 +132,7 @@ describe('quota engine', () => {
 
   it('lets respondents outside the full cell complete', async () => {
     const respondent = await db.respondent.create({
-      data: { surveyId, panelRespondentId: `MAN-${randomUUID()}` },
+      data: { surveyId, panelRespondentId: `MAN-${randomUUID()}`, consentedAt: new Date() },
     });
     const cookie = cookieFor(respondent.id);
     const answered = await app.inject({

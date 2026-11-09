@@ -118,7 +118,7 @@ const ids = (items: unknown) =>
 
 async function newSession() {
   const respondent = await db.respondent.create({
-    data: { surveyId, panelRespondentId: `P-${randomUUID()}` },
+    data: { surveyId, panelRespondentId: `P-${randomUUID()}`, consentedAt: new Date() },
   });
   const cookie = `${SESSION_COOKIE}=${app.signCookie(respondent.id)}`;
   return {
@@ -346,5 +346,85 @@ describe('finishing a session (DSA-305)', () => {
     const page = await app.inject(redirectUrl.replace(BASE, ''));
     expect(page.body).toContain('Mock Dynata: Complete');
     expect(page.body).toContain('Signature: valid');
+  });
+});
+
+describe('welcome and consent (DSA-402)', () => {
+  async function freshRespondent() {
+    const respondent = await db.respondent.create({
+      data: { surveyId, panelRespondentId: `W-${randomUUID()}` },
+    });
+    const headers = { cookie: `${SESSION_COOKIE}=${app.signCookie(respondent.id)}` };
+    return { respondent, headers };
+  }
+
+  it('shows the welcome screen until the respondent starts', async () => {
+    await db.survey.update({
+      where: { id: surveyId },
+      data: { intro: 'Willkommen', estimatedMinutes: 12, privacyNotice: 'Ihre Daten…' },
+    });
+    const { headers } = await freshRespondent();
+    const body: unknown = (await app.inject({ url: '/api/session/questions', headers })).json();
+    expect(body).toMatchObject({
+      done: false,
+      welcome: {
+        title: 'Session test',
+        intro: 'Willkommen',
+        estimatedMinutes: 12,
+        botCheckSiteKey: null,
+      },
+    });
+    const early = await app.inject({
+      method: 'POST',
+      url: '/api/session/answers',
+      headers,
+      payload: { questionCode: 'S1', value: { optionIds: ['1'] } },
+    });
+    expect(early.json()).toEqual({ error: 'consent_required' });
+  });
+
+  it('starts after consent and returns the first question', async () => {
+    const { respondent, headers } = await freshRespondent();
+    const started = await app.inject({ method: 'POST', url: '/api/session/start', headers });
+    expect(screen(started).question?.code).toBe('S1');
+    const stored = await db.respondent.findUniqueOrThrow({ where: { id: respondent.id } });
+    expect(stored.consentedAt).toBeInstanceOf(Date);
+  });
+
+  it('ends the survey as a screen-out when the respondent declines', async () => {
+    const { headers } = await freshRespondent();
+    const declined = await app.inject({ method: 'POST', url: '/api/session/decline', headers });
+    expect(declined.json()).toMatchObject({ done: true, outcome: 'screenout' });
+  });
+
+  it('refuses to start when the bot check fails', async () => {
+    const strict = await buildApp({
+      db,
+      env: { APP_BASE_URL: BASE, SESSION_SECRET: 'x'.repeat(32) },
+      provider: createDynataProvider({
+        client: createDynataClient(dynata, { appBaseUrl: BASE }),
+        config: dynata,
+        appBaseUrl: BASE,
+      }),
+      botCheck: { siteKey: 'site', verify: () => Promise.resolve(false) },
+    });
+    try {
+      const { respondent } = await freshRespondent();
+      const headers = { cookie: `${SESSION_COOKIE}=${strict.signCookie(respondent.id)}` };
+      const welcome: unknown = (
+        await strict.inject({ url: '/api/session/questions', headers })
+      ).json();
+      expect(welcome).toMatchObject({ welcome: { botCheckSiteKey: 'site' } });
+      const response = await strict.inject({
+        method: 'POST',
+        url: '/api/session/start',
+        headers,
+        payload: { botCheckToken: 'bad' },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(response.json()).toEqual({ error: 'bot_check_failed' });
+    } finally {
+      await strict.close();
+    }
   });
 });

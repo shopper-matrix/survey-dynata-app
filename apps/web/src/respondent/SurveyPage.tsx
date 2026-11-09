@@ -1,0 +1,117 @@
+import { useCallback, useEffect, useState } from 'react';
+import { PrimaryButton } from '@/components/survey/PrimaryButton';
+import { SurveyLayout } from '@/components/survey/SurveyLayout';
+import { ApiError, sessionApi, type Screen } from './api';
+import { en } from './messages';
+import { WelcomeView } from './WelcomeView';
+
+/** Where the session ends: the provider's end link (or the internal test page). */
+function leave(redirectUrl: string) {
+  window.location.replace(redirectUrl);
+}
+
+/**
+ * The respondent survey at /survey: shows whatever screen the server says comes next. The
+ * session cookie set by the entry link identifies the respondent.
+ */
+export function SurveyPage() {
+  const t = en;
+  const [screen, setScreen] = useState<Screen | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const show = useCallback((next: Screen) => {
+    setScreen(next);
+    if (next.done && next.redirectUrl) leave(next.redirectUrl);
+  }, []);
+
+  const run = useCallback(
+    async (action: () => Promise<Screen>) => {
+      setBusy(true);
+      setError(null);
+      try {
+        show(await action());
+      } catch (failure) {
+        if (failure instanceof ApiError && failure.code === 'bot_check_failed')
+          setError(t.botCheckFailed);
+        else if (failure instanceof ApiError && failure.status === 401) setError(t.noSession);
+        else setError(t.error);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [show, t],
+  );
+
+  // First load: state is only set once the request settles.
+  useEffect(() => {
+    let active = true;
+    sessionApi
+      .current()
+      .then((next) => {
+        if (active) show(next);
+      })
+      .catch((failure: unknown) => {
+        if (active)
+          setError(failure instanceof ApiError && failure.status === 401 ? t.noSession : t.error);
+      });
+    return () => {
+      active = false;
+    };
+  }, [show, t]);
+
+  if (!screen) {
+    return (
+      <SurveyLayout
+        footer={
+          error ? (
+            <PrimaryButton
+              onClick={() => {
+                void run(sessionApi.current);
+              }}
+            >
+              {t.retry}
+            </PrimaryButton>
+          ) : undefined
+        }
+      >
+        <p role="status" className="text-muted-foreground">
+          {error ?? t.loading}
+        </p>
+      </SurveyLayout>
+    );
+  }
+
+  if (!screen.done && 'welcome' in screen) {
+    return (
+      <WelcomeView
+        welcome={screen.welcome}
+        t={t}
+        busy={busy}
+        error={error}
+        onStart={(token) => {
+          void run(() => sessionApi.start(token));
+        }}
+        onDecline={() => {
+          void run(sessionApi.decline);
+        }}
+      />
+    );
+  }
+
+  if (!screen.done) {
+    return (
+      <SurveyLayout progress={screen.progress}>
+        <h1 className="text-lg font-semibold sm:text-xl">{screen.question.text}</h1>
+      </SurveyLayout>
+    );
+  }
+
+  return (
+    <SurveyLayout>
+      <p role="status" className="text-muted-foreground">
+        {t.loading}
+      </p>
+    </SurveyLayout>
+  );
+}

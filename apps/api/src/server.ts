@@ -1,4 +1,5 @@
 import { buildApp } from './app.js';
+import { createTurnstile } from './bot-check/turnstile.js';
 import { createDb } from './db.js';
 import { createDynataClient } from './dynata/client.js';
 import { dynataConfig } from './dynata/config.js';
@@ -23,7 +24,13 @@ const provider = createDynataProvider({
   config: dynata,
   appBaseUrl: env.APP_BASE_URL,
 });
-const app = await buildApp({ db, env, provider, logger: true });
+const botCheck = createTurnstile({
+  siteKey: env.TURNSTILE_SITE_KEY,
+  secretKey: env.TURNSTILE_SECRET_KEY,
+});
+const app = await buildApp({ db, env, provider, botCheck, logger: true });
+if (!botCheck.siteKey)
+  app.log.warn('Turnstile keys not set: bot check on the welcome screen is off');
 
 await app.listen({ host: '0.0.0.0', port: env.PORT });
 app.log.info(`Environment ${env.NODE_ENV}, Dynata ${dynata.mode} mode`);

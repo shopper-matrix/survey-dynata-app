@@ -60,6 +60,14 @@ export const blockDefinitionSchema = z.object({
   questions: z.array(questionDefinitionSchema),
 });
 
+/** Welcome screen texts (DSA-402); all optional. */
+export const welcomeShape = {
+  intro: z.string().min(1).max(2000).optional(),
+  estimatedMinutes: z.int().min(1).max(180).optional(),
+  privacyNotice: z.string().min(1).max(4000).optional(),
+  privacyPolicyUrl: z.url().optional(),
+};
+
 export const quotaDefinitionSchema = z.object({
   name: z.string().min(1),
   conditions: conditionSchema,
@@ -76,6 +84,7 @@ export const surveyDefinitionSchema = z
       language: z.string().min(2).max(10),
       targetCompletes: z.int().min(1),
       notes: z.array(z.string().min(1)).default([]),
+      ...welcomeShape,
     }),
     assignments: z.array(assignmentSchema).default([]),
     blocks: z.array(blockDefinitionSchema).min(1),

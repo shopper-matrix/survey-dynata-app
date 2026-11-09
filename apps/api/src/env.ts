@@ -20,6 +20,9 @@ const envSchema = z
       .string({ error: 'is required' })
       .min(32, 'must be at least 32 characters (use a long random value)'),
     /** Admin sessions end after this many minutes without activity. */
+    /** Cloudflare Turnstile keys; without them the bot check is off. */
+    TURNSTILE_SITE_KEY: z.string().optional(),
+    TURNSTILE_SECRET_KEY: z.string().optional(),
     ADMIN_SESSION_IDLE_MINUTES: z.coerce
       .number()
       .int()

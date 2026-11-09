@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import type { PrismaClient } from '@survey-dynata/shared/db/client';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { createTurnstile, type BotCheck } from './bot-check/turnstile.js';
 import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
@@ -19,6 +20,8 @@ export interface AppDependencies {
   env: Pick<Env, 'APP_BASE_URL' | 'SESSION_SECRET'> &
     Partial<Pick<Env, 'ADMIN_SESSION_IDLE_MINUTES'>>;
   provider: SampleProvider;
+  /** Bot check on the welcome screen; off when omitted. */
+  botCheck?: BotCheck;
   logger?: boolean;
 }
 
@@ -27,6 +30,7 @@ export async function buildApp({
   db,
   env,
   provider,
+  botCheck = createTurnstile({}),
   logger = false,
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({ logger });
@@ -37,7 +41,7 @@ export async function buildApp({
 
   registerHealthRoute(app, db);
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
-  registerSessionRoutes(app, { db, provider, beforeEnd: applyQuotasOnComplete });
+  registerSessionRoutes(app, { db, provider, botCheck, beforeEnd: applyQuotasOnComplete });
   provider.registerRoutes?.(app);
   const idleMinutes = env.ADMIN_SESSION_IDLE_MINUTES ?? 30;
   registerAdminAuthRoutes(app, { db, secureCookies, idleMinutes });

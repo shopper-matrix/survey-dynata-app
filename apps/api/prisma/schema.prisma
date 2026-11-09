@@ -84,6 +84,11 @@ model Survey {
   status          SurveyStatus @default(draft)
   /// Set while an admin has paused the survey: new entrants are sent to the over-quota link.
   pausedAt        DateTime?
+  /// Welcome screen: short introduction, estimated length, privacy notice and policy link.
+  intro            String?
+  estimatedMinutes Int?
+  privacyNotice    String?
+  privacyPolicyUrl String?
   targetCompletes Int
   language        String       @default("en")
   /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.
@@ -187,6 +192,8 @@ model Respondent {
   panelRespondentId String
   status            RespondentStatus @default(started)
   isTest            Boolean          @default(false)
+  /// When the respondent accepted the welcome / privacy screen (passed the bot check).
+  consentedAt       DateTime?
   startedAt         DateTime         @default(now())
   endedAt           DateTime?
   deviceType        DeviceType?

@@ -12,17 +12,17 @@ function renderAt(path: string) {
 
 const screens: [path: string, heading: RegExp][] = [
   ['/', /Survey Dynata App/],
-  ['/survey/welcome', /Grocery Shopping Habits 2026/],
-  ['/survey/single', /How old are you/],
-  ['/survey/multi', /Where have you bought groceries/],
-  ['/survey/grid', /How much do you agree/],
-  ['/survey/open', /What would make your weekly shop easier/],
-  ['/survey/number', /How many times did you shop/],
-  ['/survey/rating', /How likely are you to recommend/],
-  ['/survey/end/complete', /Thank you!/],
-  ['/survey/end/screenout', /Thank you for your time/],
-  ['/admin/surveys', /Surveys/],
-  ['/admin/dashboard', /Grocery Shopping Habits 2026/],
+  ['/prototype/survey/welcome', /Grocery Shopping Habits 2026/],
+  ['/prototype/survey/single', /How old are you/],
+  ['/prototype/survey/multi', /Where have you bought groceries/],
+  ['/prototype/survey/grid', /How much do you agree/],
+  ['/prototype/survey/open', /What would make your weekly shop easier/],
+  ['/prototype/survey/number', /How many times did you shop/],
+  ['/prototype/survey/rating', /How likely are you to recommend/],
+  ['/prototype/survey/end/complete', /Thank you!/],
+  ['/prototype/survey/end/screenout', /Thank you for your time/],
+  ['/prototype/admin/surveys', /Surveys/],
+  ['/prototype/admin/dashboard', /Grocery Shopping Habits 2026/],
 ];
 
 describe('prototype routes', () => {
@@ -39,22 +39,22 @@ describe('prototype routes', () => {
 
   it('blocks Next until a question is answered, then moves on', async () => {
     const user = userEvent.setup();
-    const router = renderAt('/survey/single');
+    const router = renderAt('/prototype/survey/single');
 
     await user.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByRole('alert').textContent).toBe('Please choose one option.');
 
     await user.click(screen.getByRole('radio', { name: '25–34' }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(router.state.location.pathname).toBe('/survey/multi');
+    expect(router.state.location.pathname).toBe('/prototype/survey/multi');
   });
 
   it('screens out respondents under 18', async () => {
     const user = userEvent.setup();
-    const router = renderAt('/survey/single');
+    const router = renderAt('/prototype/survey/single');
 
     await user.click(screen.getByRole('radio', { name: 'Under 18' }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(router.state.location.pathname).toBe('/survey/end/screenout');
+    expect(router.state.location.pathname).toBe('/prototype/survey/end/screenout');
   });
 });

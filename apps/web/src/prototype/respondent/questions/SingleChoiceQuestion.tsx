@@ -15,7 +15,7 @@ export function SingleChoiceQuestion() {
       question={ageQuestion.text}
       hint={ageQuestion.hint}
       validationError={value ? null : 'Please choose one option.'}
-      {...(screensOut ? { nextPath: '/survey/end/screenout' } : {})}
+      {...(screensOut ? { nextPath: '/prototype/survey/end/screenout' } : {})}
     >
       {({ questionId, errorId, showError }) => (
         <RadioGroup

@@ -90,6 +90,7 @@ describe('test links', () => {
     });
     expect(respondent.isTest).toBe(true);
 
+    await app.inject({ method: 'POST', url: '/api/session/start', headers });
     await app.inject({
       method: 'POST',
       url: '/api/session/answers',

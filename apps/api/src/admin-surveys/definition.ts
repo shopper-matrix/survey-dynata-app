@@ -42,6 +42,10 @@ export async function exportDefinition(
       language: survey.language,
       targetCompletes: survey.targetCompletes,
       notes: survey.notes,
+      ...(survey.intro ? { intro: survey.intro } : {}),
+      ...(survey.estimatedMinutes ? { estimatedMinutes: survey.estimatedMinutes } : {}),
+      ...(survey.privacyNotice ? { privacyNotice: survey.privacyNotice } : {}),
+      ...(survey.privacyPolicyUrl ? { privacyPolicyUrl: survey.privacyPolicyUrl } : {}),
     },
     assignments: survey.assignments as SurveyDefinitionInput['assignments'],
     blocks: survey.blocks.map((block) => ({
