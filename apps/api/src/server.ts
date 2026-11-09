@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createDb } from './db.js';
+import { dynataConfig } from './dynata/config.js';
 import { EnvValidationError, loadEnv, type Env } from './env.js';
 import { getHealth } from './health.js';
 
@@ -40,7 +41,10 @@ const server = createServer((req, res) => {
 });
 
 server.listen(env.PORT, () => {
-  console.log(`API listening on http://localhost:${String(env.PORT)} (${env.NODE_ENV})`);
+  console.log(
+    `API listening on http://localhost:${String(env.PORT)} ` +
+      `(${env.NODE_ENV}, Dynata ${dynataConfig(env).mode} mode)`,
+  );
 });
 
 function shutdown(): void {

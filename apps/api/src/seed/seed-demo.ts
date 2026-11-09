@@ -1,7 +1,13 @@
 import { conditionSchema, parseQuestionConfig } from '@survey-dynata/shared';
 import type { Prisma, PrismaClient } from '@survey-dynata/shared/db/client';
 import { buildDemoRespondents } from './demo-respondents.js';
-import { DEMO_SURVEY_ID, demoBlocks, demoQuotaCells, demoSurvey } from './demo-survey.js';
+import {
+  DEMO_DYNATA_PROJECT_ID,
+  DEMO_SURVEY_ID,
+  demoBlocks,
+  demoQuotaCells,
+  demoSurvey,
+} from './demo-survey.js';
 
 export interface SeedSummary {
   questions: number;
@@ -22,7 +28,9 @@ export async function seedDemo(db: PrismaClient): Promise<SeedSummary> {
       await tx.answer.deleteMany({ where: { respondent: { surveyId: DEMO_SURVEY_ID } } });
       await tx.survey.deleteMany({ where: { id: DEMO_SURVEY_ID } });
 
-      await tx.survey.create({ data: demoSurvey });
+      await tx.survey.create({
+        data: { ...demoSurvey, dynataSettings: { create: { projectId: DEMO_DYNATA_PROJECT_ID } } },
+      });
 
       const blocks = await tx.block.createManyAndReturn({
         data: demoBlocks.map((block, position) => ({

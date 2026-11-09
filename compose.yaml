@@ -42,6 +42,11 @@ services:
       NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgres://${POSTGRES_USER:-survey}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (copy .env.example)}@db:5432/${POSTGRES_DB:-survey_dynata}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      DYNATA_MODE: ${DYNATA_MODE:-mock}
+      DYNATA_KEY_ID: ${DYNATA_KEY_ID:-}
+      DYNATA_SECRET: ${DYNATA_SECRET:-}
+      DYNATA_API_URL: ${DYNATA_API_URL:-}
       CHOKIDAR_USEPOLLING: 'true'
     ports:
       - '${API_PORT:-3000}:3000'

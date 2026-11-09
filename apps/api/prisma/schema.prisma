@@ -87,10 +87,23 @@ model Survey {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  blocks      Block[]
-  questions   Question[]
-  quotaCells  QuotaCell[]
-  respondents Respondent[]
+  blocks         Block[]
+  questions      Question[]
+  quotaCells     QuotaCell[]
+  respondents    Respondent[]
+  dynataSettings DynataSurveySettings?
+}
+
+/// Dynata project linked to a survey (sample-provider specific, used by apps/api/src/dynata).
+/// Key ID and secret are per client and live in the environment, never in the database.
+model DynataSurveySettings {
+  surveyId  String   @id @db.Uuid
+  /// Value of the `project` parameter Dynata sends in the entry link.
+  projectId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
 }
 
 /// Group of questions shown together, e.g. "A Screening". Filters and rotation apply per block.

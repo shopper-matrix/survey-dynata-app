@@ -1,16 +1,23 @@
 import { z } from 'zod';
+import { checkDynataEnv, dynataEnvShape } from './dynata/config.js';
 
 /**
  * Every environment variable the API reads. Documented in /.env.example.
  * Add new settings here (never read process.env elsewhere) so they are validated at startup.
+ * Provider-specific variables are defined in their module (e.g. dynata/config.ts).
  */
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number({ error: 'must be a number' }).int().min(1).max(65535).default(3000),
-  DATABASE_URL: z
-    .string({ error: 'is required' })
-    .regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres:// connection string'),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number({ error: 'must be a number' }).int().min(1).max(65535).default(3000),
+    DATABASE_URL: z
+      .string({ error: 'is required' })
+      .regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres:// connection string'),
+    /** Public address of the API, used in links given to sample providers. */
+    APP_BASE_URL: z.url({ error: 'is required and must be a URL' }),
+    ...dynataEnvShape,
+  })
+  .superRefine(checkDynataEnv);
 
 export type Env = z.infer<typeof envSchema>;
 

@@ -5,6 +5,8 @@ import type { QuestionType } from '@survey-dynata/shared/db';
 // screeners, two quota cells. Generic content only, never client material.
 
 export const DEMO_SURVEY_ID = '019a0000-0000-7000-8000-000000000001';
+/** Fake Dynata project ID for mock mode (the `project` parameter in entry links). */
+export const DEMO_DYNATA_PROJECT_ID = 'DEMO-10001';
 
 export interface DemoQuestion<T extends QuestionType = QuestionType> {
   code: string;

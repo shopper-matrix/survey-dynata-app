@@ -31,10 +31,11 @@ Source documents (read the relevant section before each story):
    URLs or knows Dynata parameter names.
 6. **Never commit secrets.** Every setting is an environment variable documented with a
    placeholder in `.env.example`; real values only in `.env` (git-ignored).
-7. **Mock Dynata mode until the specs arrive** (DSA-106): respondent ID parameter `rid`, local
-   end-link pages instead of Dynata URLs, and a simple test HMAC, all configurable via env.
-   Real values replace the mocks in DSA-303 / DSA-304 and are recorded in
-   `docs/dynata-integration.md` (no secrets).
+7. **Dynata modes** (`DYNATA_MODE`, default `mock`). Dynata's spec is in
+   `docs/dynata-integration.md` (HMAC-SHA256 signed links, `psid`, one key ID + secret per
+   client, `buildAndValidate` API). `live` calls Dynata's API; `mock` verifies and signs
+   locally with the same algorithm and points end links at local pages. Develop and test in
+   mock mode; never call Dynata's real API from tests.
 
 ## Repository
 
@@ -105,7 +106,12 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
 - DSA-201 done: Prisma schema + first migration; CI runs `migrate deploy` and DB tests against a
   Postgres service.
 - DSA-202 done: `pnpm db:seed` → demo survey (every question type) + 50 fake respondents
-  (`apps/api/src/seed/`). Next: DSA-301 (needs DSA-106 specs; mock mode until then).
+  (`apps/api/src/seed/`).
+- DSA-301 done: `apps/api/src/dynata/` (config, signature, client mock/live, entry URL) and
+  `DynataSurveySettings` (survey ↔ project ID). Backlog DSA-301…305/503 were rewritten after
+  Dynata's signed-link document (end links come pre-signed from the API at entry). Next: DSA-302.
+- DSA-106 open questions (quality-termination link, API limits…) are listed in
+  `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
 - Deviations to keep in mind:
   - The API is currently a plain `node:http` server. Fastify comes in with the first real routes.

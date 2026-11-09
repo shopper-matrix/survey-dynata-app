@@ -16,10 +16,10 @@ Nov 9, 2026
 | DSA-106 | Collect Dynata integration specs | Setup | Must | 1 | — | To do |
 | DSA-201 | Prisma schema and first migration | Data model | Must | 5 | 102 | To do |
 | DSA-202 | Demo seed data | Data model | Should | 2 | 201 | To do |
-| DSA-301 | Per-survey Dynata settings | Dynata | Must | 2 | 201, 106 | To do |
+| DSA-301 | Dynata configuration and signed-link client | Dynata | Must | 2 | 201, 106 | To do |
 | DSA-302 | Entry endpoint | Dynata | Must | 5 | 301 | To do |
 | DSA-303 | Incoming signature verification | Dynata | Must | 3 | 302, 106 | To do |
-| DSA-304 | Signed end-link builder | Dynata | Must | 3 | 301, 106 | To do |
+| DSA-304 | Signed end links per respondent | Dynata | Must | 3 | 303 | To do |
 | DSA-305 | Finish endpoint and RedirectLog | Dynata | Must | 5 | 304 | To do |
 | DSA-306 | Question delivery and answer API | Dynata | Must | 5 | 302 | To do |
 | DSA-307 | Screening engine | Dynata | Must | 5 | 306 | To do |
@@ -113,6 +113,7 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 - The eight questions from the guide are sent to our Dynata contact on day one.
 - Until answers arrive, development uses a **mock Dynata mode**: placeholder parameter name (`rid`), local end-link pages and a simple test HMAC, all configurable.
 - When answers arrive, they are stored in `docs/dynata-integration.md` (secrets excluded) and the mock values are replaced in DSA-303 and DSA-304.
+- *Update (Nov 2026):* Dynata's "Signed URL Start-End API" document answers the signing questions (HMAC-SHA256, `psid`, one key ID + secret per client, `buildAndValidate` API). Remaining open questions are listed in `docs/dynata-integration.md`.
 
 ## Epic 2 — Data model
 
@@ -134,19 +135,19 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 
 ## Epic 3 — Dynata integration and survey engine
 
-### DSA-301 · Per-survey Dynata settings
+### DSA-301 · Dynata configuration and signed-link client
 
-*As an admin, I want Dynata settings stored per survey, so that several Dynata projects can run at the same time.*
+*As an admin, I want each survey linked to its Dynata project, so that several Dynata projects can run at the same time.*
 
-- Each survey stores: Dynata project ID, respondent ID parameter name, four end-link templates, signing secret.
-- The secret is encrypted at rest and never returned by any API after saving.
-- The survey's entry URL is generated and available to copy.
+- Each survey stores its Dynata project ID. The key ID and secret (one pair per client) are environment variables kept in the hosting secret store, never in the database.
+- `DYNATA_MODE=mock|live`: one client interface `buildAndValidate(entryUrl)`; live calls Dynata's API, mock verifies and signs locally with the documented HMAC-SHA256 algorithm.
+- The survey's entry URL (`<APP_BASE_URL>/s/<surveyId>`) is generated for copying.
 
 ### DSA-302 · Entry endpoint
 
 *As a Dynata panelist, I want to land in the survey straight from my invitation, so that I can start immediately.*
 
-- `GET /s/:surveyId?<rid>=…` creates a Respondent and sets a secure, HTTP-only session cookie, then redirects to the survey page.
+- `GET /s/:surveyId?project=…&psid=…&_k=…&_s=…` creates a Respondent only after the link is verified (DSA-303), sets a secure, HTTP-only session cookie, then redirects to the survey page.
 - Survey not live → redirect to the over-quota end link.
 - Missing respondent ID → friendly error page, no record created.
 - Same ID returning while in progress → resumes at their last screen; already finished → quality end link.
@@ -155,25 +156,26 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 
 *As the project owner, I want entry links verified, so that people cannot enter with invented IDs.*
 
-- If Dynata signs entry URLs, the signature is checked using the method from DSA-106.
-- Invalid or missing signature → entry refused and logged.
+- Every entry link is verified with `buildAndValidate` (Dynata API in live mode, local HMAC in mock mode).
+- Failed verification → respondent sent to Dynata's `invalidSignatureLink`, attempt logged, no Respondent created.
 - Can be switched off per survey for test mode only.
 
-### DSA-304 · Signed end-link builder
+### DSA-304 · Signed end links per respondent
 
 *As the project owner, I want every redirect back to Dynata signed, so that completes cannot be faked.*
 
-- `buildEndUrl(survey, outcome, respondentId)` in `apps/api/src/dynata/` returns the final URL with ID and hash.
-- Hash method matches Dynata's spec exactly (verified against Dynata's examples in unit tests).
-- No other part of the code builds Dynata URLs.
+- The signed end links returned at entry (complete, screen-out, over-quota, invalid signature) are stored per respondent in a Dynata table.
+- `endLinkFor(respondent, outcome)` in `apps/api/src/dynata/` returns the stored link; we never sign end links ourselves in live mode.
+- Signing in mock mode matches Dynata's documented example (unit test). No other part of the code builds Dynata URLs.
 
 ### DSA-305 · Finish endpoint and RedirectLog
 
 *As the project owner, I want each respondent's outcome recorded before redirecting, so that our counts match Dynata's invoice.*
 
-- `POST /api/session/finish` sets the final status, runs quality checks, writes a RedirectLog row, and returns the signed URL.
+- `POST /api/session/finish` sets the final status, runs quality checks, writes a RedirectLog row, and returns the stored signed URL.
 - Calling it again for the same respondent returns the same URL (idempotent).
-- Outcomes supported: complete, screenout, overquota, quality.
+- Outcomes supported: complete, screenout, overquota, quality (which Dynata link quality terminations use is still open, see `docs/dynata-integration.md`).
+- Mock mode: local `/mock-dynata/end` page shows the outcome and the link that would go to Dynata.
 
 ### DSA-306 · Question delivery and answer API
 
@@ -285,6 +287,7 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 - Rate limits on entry endpoint and admin login.
 - Cookies are Secure, HttpOnly, SameSite.
 - No raw SQL built from user input; `npm audit` runs in CI.
+- Calls to Dynata's API have a timeout, and an unavailable API is handled with a friendly error page (no Respondent created, attempt logged).
 
 ### DSA-504 · Privacy notice and data retention
 
