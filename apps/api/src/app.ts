@@ -26,7 +26,8 @@ export async function buildApp({
 
   registerHealthRoute(app, db);
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
-  registerSessionRoutes(app, db);
+  registerSessionRoutes(app, { db, provider });
+  provider.registerRoutes?.(app);
 
   return app;
 }

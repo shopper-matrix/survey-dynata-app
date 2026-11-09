@@ -4,6 +4,9 @@ import {
   type SampleProvider,
 } from '../providers/sample-provider.js';
 import { DynataApiError, type DynataClient, type DynataLinks } from './client.js';
+import type { DynataConfig } from './config.js';
+import { mockEndLink } from './mock-links.js';
+import { registerMockEndPage } from './mock-end-page.js';
 
 /**
  * Dynata's API returns no link for quality terminations (open question, see
@@ -11,7 +14,19 @@ import { DynataApiError, type DynataClient, type DynataLinks } from './client.js
  */
 const QUALITY_LINK = 'screenOutLink' satisfies keyof DynataLinks;
 
-export function createDynataProvider(client: DynataClient): SampleProvider {
+interface DynataProviderOptions {
+  client: DynataClient;
+  config: DynataConfig;
+  appBaseUrl: string;
+}
+
+export function createDynataProvider({
+  client,
+  config,
+  appBaseUrl,
+}: DynataProviderOptions): SampleProvider {
+  const mock = config.mode === 'mock';
+
   return {
     respondentId(entryUrl) {
       const psid = entryUrl.searchParams.get('psid')?.trim() ?? '';
@@ -39,5 +54,21 @@ export function createDynataProvider(client: DynataClient): SampleProvider {
         invalidLink: links.invalidSignatureLink,
       };
     },
+
+    endLink(respondent, outcome) {
+      if (!mock) {
+        // Live links depend on Dynata's security mode, decided with the parked DSA-303/304.
+        throw new Error('Live Dynata end links are not implemented yet (DSA-304 is parked).');
+      }
+      return mockEndLink(appBaseUrl, config.secret, respondent.panelRespondentId, outcome);
+    },
+
+    ...(mock
+      ? {
+          registerRoutes: (app) => {
+            registerMockEndPage(app, { appBaseUrl, secret: config.secret });
+          },
+        }
+      : {}),
   };
 }

@@ -33,8 +33,10 @@ const stimuli = z.array(stimulusSchema).min(1).refine(uniqueIds, 'Stimulus ids m
  */
 export const pipeSchema = z.object({ question: z.string().min(1) });
 
+// At least one option: piping can leave a single one on screen. Authoring requires two
+// (checked in survey-definition.ts).
 const choice = z.object({
-  options,
+  options: z.array(optionSchema).min(1).refine(uniqueIds, 'Option ids must be unique'),
   randomize: z.boolean().default(false),
   pipeFrom: pipeSchema.optional(),
 });

@@ -3,14 +3,17 @@ import type { Prisma, PrismaClient } from '@survey-dynata/shared/db/client';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { respondentIdFromSession } from '../http/session.js';
+import type { SampleProvider } from '../providers/sample-provider.js';
 import { failsScreening } from '../screening/screening.js';
+import { endSession, storedSessionEnd, type OutcomeHook } from '../session/end-session.js';
 import { loadFlowSurvey, loadRespondentState } from '../survey-flow/load.js';
 import type { FlowStep } from '../survey-flow/next-screen.js';
 import { presentQuestion } from '../survey-flow/present.js';
 import { resolveWalk } from '../survey-flow/resolve.js';
-import type { FlowQuestion } from '../survey-flow/types.js';
+import type { FlowQuestion, RespondentState } from '../survey-flow/types.js';
 
-// Respondent session API: the server decides what comes next; the browser only shows it.
+// Respondent session API: the server decides what comes next and how the session ends; the
+// browser only shows screens and follows the returned redirect.
 
 const answerBodySchema = z.strictObject({
   questionCode: z.string().min(1),
@@ -22,6 +25,13 @@ const answerBodySchema = z.strictObject({
     .optional(),
 });
 
+export interface SessionRouteOptions {
+  db: PrismaClient;
+  provider: SampleProvider;
+  /** Runs when a session ends, before the outcome is stored (quotas, quality checks). */
+  beforeEnd?: OutcomeHook;
+}
+
 function screenResponse(step: FlowStep) {
   if (step.kind === 'screen') {
     return { done: false, question: step.question, progress: step.progress };
@@ -32,38 +42,44 @@ function screenResponse(step: FlowStep) {
 const fail = (reply: FastifyReply, status: number, error: string, details?: unknown) =>
   reply.code(status).send({ error, ...(details === undefined ? {} : { details }) });
 
-export function registerSessionRoutes(app: FastifyInstance, db: PrismaClient): void {
-  /** The respondent behind the session cookie, if they may still answer. */
-  async function activeRespondent(request: FastifyRequest, reply: FastifyReply) {
+const conditionContext = (state: RespondentState) => ({
+  answer: (code: string) => state.answers.get(code),
+  assignment: (name: string) => state.assignments[name] as string | string[] | undefined,
+});
+
+export function registerSessionRoutes(app: FastifyInstance, options: SessionRouteOptions): void {
+  const { db, provider, beforeEnd } = options;
+
+  async function sessionRespondent(request: FastifyRequest) {
     const respondentId = respondentIdFromSession(request);
-    const respondent = respondentId
-      ? await db.respondent.findUnique({
+    return respondentId
+      ? db.respondent.findUnique({
           where: { id: respondentId },
           select: { id: true, surveyId: true, status: true, assignments: true },
         })
       : null;
-    if (!respondent) {
-      await fail(reply, 401, 'no_session');
-      return null;
-    }
-    if (respondent.status !== 'started') {
-      await fail(reply, 409, 'finished');
-      return null;
-    }
-    return respondent;
+  }
+
+  /** A finished respondent gets the same redirect again (refresh, back button). */
+  async function finished(reply: FastifyReply, respondentId: string) {
+    const end = await storedSessionEnd(db, respondentId);
+    return end ? { done: true, ...end } : fail(reply, 409, 'finished');
   }
 
   app.get('/api/session/questions', async (request, reply) => {
-    const respondent = await activeRespondent(request, reply);
-    if (!respondent) return reply;
+    const respondent = await sessionRespondent(request);
+    if (!respondent) return fail(reply, 401, 'no_session');
+    if (respondent.status !== 'started') return finished(reply, respondent.id);
+
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
     return screenResponse(walk.step);
   });
 
   app.post('/api/session/answers', async (request, reply) => {
-    const respondent = await activeRespondent(request, reply);
-    if (!respondent) return reply;
+    const respondent = await sessionRespondent(request);
+    if (!respondent) return fail(reply, 401, 'no_session');
+    if (respondent.status !== 'started') return fail(reply, 409, 'finished');
 
     const body = answerBodySchema.safeParse(request.body);
     if (!body.success) return fail(reply, 400, 'invalid_request', body.error.issues);
@@ -104,18 +120,25 @@ export function registerSessionRoutes(app: FastifyInstance, db: PrismaClient): v
     });
     state.answers.set(question.code, value.data as AnswerValue);
 
-    const ctx = {
-      answer: (code: string) => state.answers.get(code),
-      assignment: (name: string) => state.assignments[name] as string | string[] | undefined,
-    };
-    if (failsScreening(question.screenOutRules, ctx)) {
-      await db.respondent.update({
-        where: { id: respondent.id },
-        data: { status: 'screenout', endedAt: new Date() },
-      });
-      return { done: true, outcome: 'screenout' };
+    if (failsScreening(question.screenOutRules, conditionContext(state))) {
+      return { done: true, ...(await endSession(db, provider, respondent.id, 'screenout')) };
     }
-
     return screenResponse((await resolveWalk(db, survey, state)).step);
+  });
+
+  /** Ends a respondent who answered everything; idempotent (same link on every call). */
+  app.post('/api/session/finish', async (request, reply) => {
+    const respondent = await sessionRespondent(request);
+    if (!respondent) return fail(reply, 401, 'no_session');
+    if (respondent.status !== 'started') return finished(reply, respondent.id);
+
+    const survey = await loadFlowSurvey(db, respondent.surveyId);
+    const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
+    if (walk.step.kind !== 'done') return fail(reply, 409, 'not_finished');
+
+    return {
+      done: true,
+      ...(await endSession(db, provider, respondent.id, 'complete', beforeEnd)),
+    };
   });
 }

@@ -18,7 +18,11 @@ try {
 
 const db = createDb(env.DATABASE_URL);
 const dynata = dynataConfig(env);
-const provider = createDynataProvider(createDynataClient(dynata, { appBaseUrl: env.APP_BASE_URL }));
+const provider = createDynataProvider({
+  client: createDynataClient(dynata, { appBaseUrl: env.APP_BASE_URL }),
+  config: dynata,
+  appBaseUrl: env.APP_BASE_URL,
+});
 const app = await buildApp({ db, env, provider, logger: true });
 
 await app.listen({ host: '0.0.0.0', port: env.PORT });

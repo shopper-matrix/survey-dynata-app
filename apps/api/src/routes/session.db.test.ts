@@ -7,7 +7,10 @@ import { buildApp } from '../app.js';
 import { createDb } from '../db.js';
 import { loadEnv } from '../env.js';
 import { SESSION_COOKIE } from '../http/session.js';
-import type { SampleProvider } from '../providers/sample-provider.js';
+import { createDynataClient } from '../dynata/client.js';
+import { DYNATA_API_URL, type DynataConfig } from '../dynata/config.js';
+import { createDynataProvider } from '../dynata/provider.js';
+import { hasValidSignature } from '../dynata/signature.js';
 import { importSurvey } from '../survey-import/import-survey.js';
 
 try {
@@ -19,6 +22,14 @@ try {
 const db = createDb(loadEnv().DATABASE_URL);
 const surveyId = randomUUID();
 let app: FastifyInstance;
+
+const BASE = 'http://localhost:5173';
+const dynata: DynataConfig = {
+  mode: 'mock',
+  keyId: 'k',
+  secret: 'mock-secret',
+  apiUrl: DYNATA_API_URL,
+};
 
 const options = (...ids: string[]) => ids.map((id) => ({ id, label: `Option ${id}` }));
 
@@ -80,8 +91,12 @@ beforeAll(async () => {
   await db.$transaction((tx) => importSurvey(tx, surveyDefinitionSchema.parse(definition)));
   app = await buildApp({
     db,
-    env: { APP_BASE_URL: 'http://localhost:5173', SESSION_SECRET: 'x'.repeat(32) },
-    provider: {} as SampleProvider,
+    env: { APP_BASE_URL: BASE, SESSION_SECRET: 'x'.repeat(32) },
+    provider: createDynataProvider({
+      client: createDynataClient(dynata, { appBaseUrl: BASE }),
+      config: dynata,
+      appBaseUrl: BASE,
+    }),
   });
 });
 
@@ -215,7 +230,7 @@ describe('respondent session API', () => {
       where: { id: session.respondent.id },
       data: { status: 'complete' },
     });
-    const response = await session.get();
+    const response = await session.answer('S1', { optionIds: ['1'] });
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({ error: 'finished' });
   });
@@ -247,17 +262,89 @@ describe('screening (DSA-307)', () => {
   it('screens a respondent out right after a failing screener answer', async () => {
     const session = await newSession();
     const response = await session.answer('S1', { optionIds: ['1', 'x'] });
-    expect(response.json()).toEqual({ done: true, outcome: 'screenout' });
+    expect(response.json()).toMatchObject({ done: true, outcome: 'screenout' });
 
     const stored = await db.respondent.findUniqueOrThrow({ where: { id: session.respondent.id } });
     expect(stored.status).toBe('screenout');
     expect(stored.endedAt).toBeInstanceOf(Date);
-    expect((await session.get()).statusCode).toBe(409);
+    expect(screen(await session.get())).toMatchObject({ done: true });
   });
 
   it('lets a respondent who passes the screener continue', async () => {
     const session = await newSession();
     const response = await session.answer('S1', { optionIds: ['1'] });
     expect(screen(response).question?.code).toBe('P1');
+  });
+});
+
+describe('finishing a session (DSA-305)', () => {
+  async function answerEverything(session: Awaited<ReturnType<typeof newSession>>) {
+    await session.answer('S1', { optionIds: ['1'] });
+    // Piping leaves a single option on screen.
+    expect((await session.answer('P1', { optionId: '1' })).statusCode).toBe(200);
+    const timed = screen(await session.answer('I1', { seen: true }));
+    const [shown] = ids(timed.question?.config.stimuli);
+    await session.answer('T1', { stimulusId: shown, optionId: 'bar' });
+    await session.answer('O1', { text: 'Fine.' });
+  }
+  const finish = (session: Awaited<ReturnType<typeof newSession>>) =>
+    app.inject({
+      method: 'POST',
+      url: '/api/session/finish',
+      headers: { cookie: `${SESSION_COOKIE}=${app.signCookie(session.respondent.id)}` },
+    });
+
+  it('refuses to finish before every question is answered', async () => {
+    const session = await newSession();
+    const response = await finish(session);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({ error: 'not_finished' });
+  });
+
+  it('completes, logs the redirect and returns a signed end link', async () => {
+    const session = await newSession();
+    await answerEverything(session);
+    const body = finish(session).then((r) => r.json<{ outcome: string; redirectUrl: string }>());
+    const { outcome, redirectUrl } = await body;
+    expect(outcome).toBe('complete');
+    expect(redirectUrl).toContain(
+      `/mock-dynata/end?rst=1&psid=${session.respondent.panelRespondentId}`,
+    );
+    expect(hasValidSignature(redirectUrl, dynata.secret)).toBe(true);
+
+    const stored = await db.respondent.findUniqueOrThrow({ where: { id: session.respondent.id } });
+    expect(stored.status).toBe('complete');
+    const logs = await db.redirectLog.findMany({ where: { respondentId: session.respondent.id } });
+    expect(logs).toEqual([expect.objectContaining({ outcome: 'complete', url: redirectUrl })]);
+  });
+
+  it('is idempotent: refresh and double clicks return the same link, logged once', async () => {
+    const session = await newSession();
+    await answerEverything(session);
+    const results = await Promise.all([finish(session), finish(session), finish(session)]);
+    const urls = results.map((r) => r.json<{ redirectUrl: string }>().redirectUrl);
+    expect(new Set(urls).size).toBe(1);
+    expect(await db.redirectLog.count({ where: { respondentId: session.respondent.id } })).toBe(1);
+    expect(screen(await session.get())).toMatchObject({ done: true, redirectUrl: urls[0] });
+  });
+
+  it('sends screened-out respondents to the screen-out link and logs it', async () => {
+    const session = await newSession();
+    const body = (await session.answer('S1', { optionIds: ['x'] })).json<{
+      outcome: string;
+      redirectUrl: string;
+    }>();
+    expect(body.outcome).toBe('screenout');
+    expect(body.redirectUrl).toContain('/mock-dynata/end?rst=2&psid=');
+    expect(await db.redirectLog.count({ where: { respondentId: session.respondent.id } })).toBe(1);
+  });
+
+  it('shows the outcome on the local mock end page', async () => {
+    const session = await newSession();
+    await answerEverything(session);
+    const { redirectUrl } = (await finish(session)).json<{ redirectUrl: string }>();
+    const page = await app.inject(redirectUrl.replace(BASE, ''));
+    expect(page.body).toContain('Mock Dynata: Complete');
+    expect(page.body).toContain('Signature: valid');
   });
 });

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { DynataConfig } from './config.js';
-import { hasValidSignature, signUrl } from './signature.js';
+import { mockEndLink } from './mock-links.js';
+import { hasValidSignature } from './signature.js';
 
 // One call per entering respondent: verify the signed entry link and get the four signed end
 // links for this respondent. Live mode uses Dynata's buildAndValidate API; mock mode does the
@@ -29,9 +30,6 @@ export class DynataApiError extends Error {
 }
 
 const REQUEST_TIMEOUT_MS = 5000;
-
-/** End-link result codes (`rst`) used by Dynata. */
-const RST = { complete: '1', screenOut: '2', overQuota: '3' } as const;
 
 export function createDynataClient(
   config: DynataConfig,
@@ -74,22 +72,15 @@ function mockClient(config: DynataConfig, appBaseUrl: string): DynataClient {
       const params = new URL(entryUrl).searchParams;
       const verified =
         params.get('_k') === config.keyId && hasValidSignature(entryUrl, config.secret);
-      const endLink = (rst: string, extra = '') => {
-        const query = new URLSearchParams({
-          project: params.get('project') ?? '',
-          psid: params.get('psid') ?? '',
-        });
-        return signUrl(
-          `${appBaseUrl}/mock-dynata/end?${query.toString()}&rst=${rst}${extra}`,
-          config.secret,
-        );
-      };
+      const psid = params.get('psid') ?? '';
+      const link = (outcome: Parameters<typeof mockEndLink>[3]) =>
+        mockEndLink(appBaseUrl, config.secret, psid, outcome);
       return Promise.resolve({
         verification: verified ? 'success' : 'failure',
-        completeLink: endLink(RST.complete),
-        screenOutLink: endLink(RST.screenOut),
-        overQuotaLink: endLink(RST.overQuota),
-        invalidSignatureLink: endLink(RST.screenOut, '&svFlag=1'),
+        completeLink: link('complete'),
+        screenOutLink: link('screenout'),
+        overQuotaLink: link('overquota'),
+        invalidSignatureLink: link('invalid'),
       });
     },
   };

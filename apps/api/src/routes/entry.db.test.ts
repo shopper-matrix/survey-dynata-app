@@ -38,7 +38,7 @@ async function appWith(fetchImpl?: typeof fetch, config = dynata) {
   return buildApp({
     db,
     env: { APP_BASE_URL: BASE, SESSION_SECRET },
-    provider: createDynataProvider(client),
+    provider: createDynataProvider({ client, config, appBaseUrl: BASE }),
   });
 }
 

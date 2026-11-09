@@ -20,11 +20,11 @@ describe('mock Dynata client', () => {
     const links = await client.buildAndValidate(entry());
     expect(links.verification).toBe('success');
     expect(links.completeLink).toMatch(
-      /^http:\/\/localhost:3000\/mock-dynata\/end\?project=10001&psid=P-42&rst=1&_s=/,
+      /^http:\/\/localhost:3000\/mock-dynata\/end\?rst=1&psid=P-42&_s=/,
     );
-    expect(links.screenOutLink).toContain('rst=2&_s=');
-    expect(links.overQuotaLink).toContain('rst=3&_s=');
-    expect(links.invalidSignatureLink).toContain('rst=2&svFlag=1&_s=');
+    expect(links.screenOutLink).toContain('rst=2&psid=P-42&_s=');
+    expect(links.overQuotaLink).toContain('rst=3&psid=P-42&_s=');
+    expect(links.invalidSignatureLink).toContain('rst=2&svFlag=1&psid=P-42&_s=');
     for (const link of Object.values(links).slice(1)) {
       expect(hasValidSignature(link, mockConfig.secret)).toBe(true);
     }

@@ -1,3 +1,5 @@
+import type { FastifyInstance } from 'fastify';
+
 // Provider-neutral view of a sample provider (Dynata today; Cint, Lucid… later). Routes only
 // use this interface, so provider-specific names stay inside the provider's own module.
 
@@ -16,6 +18,10 @@ export interface SampleProvider {
   respondentId(entryUrl: URL): string | null;
   /** Verifies the signed entry link and returns this respondent's end links. */
   verifyEntry(entryUrl: string): Promise<EntryVerification>;
+  /** The (signed) link that returns a respondent to the provider with this outcome. */
+  endLink(respondent: { panelRespondentId: string }, outcome: EndOutcome): string;
+  /** Provider-specific routes, e.g. a local end page in mock mode. */
+  registerRoutes?(app: FastifyInstance): void;
 }
 
 /** The provider could not be reached or answered unexpectedly. */

@@ -108,6 +108,20 @@ export const surveyDefinitionSchema = z
       }
     };
 
+    definition.blocks.forEach((block, blockIndex) => {
+      block.questions.forEach((question, questionIndex) => {
+        const choices = (question.config as { options?: unknown[] }).options;
+        const isChoice = question.type === 'single_choice' || question.type === 'multi_choice';
+        if (isChoice && (choices?.length ?? 0) < 2) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['blocks', blockIndex, 'questions', questionIndex, 'config', 'options'],
+            message: `${question.code}: a choice question needs at least two options`,
+          });
+        }
+      });
+    });
+
     for (const block of definition.blocks) {
       check(`Block ${block.code}`, block.displayLogic);
       for (const question of block.questions) {
