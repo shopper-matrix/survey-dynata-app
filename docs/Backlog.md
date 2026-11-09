@@ -161,21 +161,24 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 - Missing respondent ID → friendly error page, no record created.
 - Same ID returning while in progress → resumes at their last screen; already finished → quality end link.
 
+> **DSA-303 … DSA-305 are parked until the end of the backlog** (product owner's decision, Nov 2026): first confirm with Dynata which security mode our projects use and the exact quality flag (see `docs/dynata-integration.md`). Development continues in mock mode.
+
 ### DSA-303 · Incoming signature verification
 
 *As the project owner, I want entry links verified, so that people cannot enter with invented IDs.*
 
-- Every entry link is verified with `buildAndValidate` (Dynata API in live mode, local HMAC in mock mode).
-- Failed verification → respondent sent to Dynata's `invalidSignatureLink`, attempt logged, no Respondent created.
-- Can be switched off per survey for test mode only.
+- One setting selects Dynata's security mode: `api` ("Secured Links Start-End": verify and get signed end links via `buildAndValidate`) or `end` ("Secured Links End": start links unsigned, we sign end links ourselves with HMAC-SHA256 over path + query).
+- In `api` mode a failed verification sends the respondent to `invalidSignatureLink`; no Respondent is created. No check relies on the `project` parameter (Dynata may not send it).
+- Every entry attempt is logged in a provider-neutral `EntryAttempt` table (accepted, resumed, invalid signature, survey not live, already finished, missing ID, provider unavailable, unknown survey).
+- Signature checks can be switched off per survey, effective only while the survey is in test mode; skipped checks are logged.
 
 ### DSA-304 · Signed end links per respondent
 
 *As the project owner, I want every redirect back to Dynata signed, so that completes cannot be faked.*
 
-- The signed end links returned at entry (complete, screen-out, over-quota, invalid signature) are stored per respondent in a Dynata table.
-- `endLinkFor(respondent, outcome)` in `apps/api/src/dynata/` returns the stored link; we never sign end links ourselves in live mode.
-- Signing in mock mode matches Dynata's documented example (unit test). No other part of the code builds Dynata URLs.
+- `api` mode: the signed end links returned at entry are stored per respondent in a Dynata table. `end` mode: links to `https://dkr1.ssisurveys.com/projects/end?rst=…&psid=…&_k=…&_s=…` are built and signed on finish, `_s` last.
+- Quality terminations use `rst=2&qflag=…` (value and spelling confirmed with Dynata); in `api` mode a quality link must come from Dynata.
+- `endLinkFor(respondent, outcome)` in `apps/api/src/dynata/` is the only place that produces Dynata URLs; signing matches Dynata's documented examples (unit tests).
 
 ### DSA-305 · Finish endpoint and RedirectLog
 

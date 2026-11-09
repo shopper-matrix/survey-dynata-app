@@ -120,8 +120,9 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   `private/surveys/rawbite-phase2.json` (git-ignored, client content: never commit, never copy
   its texts into committed files). Gaps the engine can't express yet are in each question's
   `notes`.
-- Next: DSA-303 — re-plan first: Dynata's "Survey Details, Links & Redirects" article changes
-  the assumptions (see `docs/dynata-integration.md`).
+- **DSA-303…305 are parked until the end** (product owner, Nov 2026): Dynata security mode and
+  quality flag must be confirmed first; their revised plan is in `docs/Backlog.md`. Keep working
+  in mock mode. Next: DSA-306, then the rest of the backlog in order.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
