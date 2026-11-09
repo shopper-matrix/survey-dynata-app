@@ -4,6 +4,7 @@ import {
   type SampleProvider,
 } from '../providers/sample-provider.js';
 import { DynataApiError, type DynataClient, type DynataLinks } from './client.js';
+import { registerDynataAdminRoutes } from './admin-routes.js';
 import type { DynataConfig } from './config.js';
 import { mockEndLink } from './mock-links.js';
 import { registerMockEndPage } from './mock-end-page.js';
@@ -62,6 +63,10 @@ export function createDynataProvider({
         throw new Error('Live Dynata end links are not implemented yet (DSA-304 is parked).');
       }
       return mockEndLink(appBaseUrl, config.secret, respondent.panelRespondentId, outcome);
+    },
+
+    registerAdminRoutes(app, options) {
+      registerDynataAdminRoutes(app, options, config);
     },
 
     testEntryUrl(surveyEntryUrl, panelRespondentId) {

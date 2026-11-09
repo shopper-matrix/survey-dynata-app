@@ -136,7 +136,10 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-  Next: DSA-307 (screening engine).
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604.
+  Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
+  provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
+  (`dynata/admin-routes.ts`). Next: DSA-605 (live dashboard).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

@@ -18,6 +18,7 @@ import {
 } from '../admin-surveys/definition.js';
 import { audit } from '../admin/audit.js';
 import { adminOf, requireAdmin } from '../admin/auth.js';
+import { surveyEntryUrl } from '../http/entry-url.js';
 import { withoutUndefined } from '../lib/without-undefined.js';
 
 // Admin CRUD for surveys, blocks, questions (incl. screening rules) and quotas. Every change
@@ -63,9 +64,9 @@ const codeParams = surveyParams.extend({ code: z.string().min(1) });
 
 export function registerAdminSurveyRoutes(
   app: FastifyInstance,
-  options: { db: PrismaClient; idleMinutes: number },
+  options: { db: PrismaClient; idleMinutes: number; appBaseUrl: string },
 ): void {
-  const { db, idleMinutes } = options;
+  const { db, idleMinutes, appBaseUrl } = options;
   const viewer = { preHandler: requireAdmin(db, 'viewer', idleMinutes) };
   const editor = { preHandler: requireAdmin(db, 'editor', idleMinutes) };
   const owner = { preHandler: requireAdmin(db, 'owner', idleMinutes) };
@@ -129,6 +130,7 @@ export function registerAdminSurveyRoutes(
         pausedAt: true,
         updatedAt: true,
         _count: { select: { respondents: true } },
+        quotaCells: { select: { name: true, currentCount: true } },
       },
     });
     return {
@@ -136,6 +138,10 @@ export function registerAdminSurveyRoutes(
       pausedAt: survey.pausedAt,
       updatedAt: survey.updatedAt,
       respondents: survey._count.respondents,
+      entryUrl: surveyEntryUrl(appBaseUrl, surveyId),
+      quotaCounts: Object.fromEntries(
+        survey.quotaCells.map((cell) => [cell.name, cell.currentCount]),
+      ),
       definition: await db.$transaction((tx) => exportDefinition(tx, surveyId)),
     };
   }

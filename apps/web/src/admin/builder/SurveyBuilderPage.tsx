@@ -4,15 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAdmin } from '../AdminLayout';
 import {
-  AdminApiError,
   adminApi,
   type QuestionInput,
+  type QuotaInput,
   type SurveyDetails,
   type SurveyStatus,
 } from '../api';
 import { SurveyStatusBadge } from '../StatusBadge';
+import { describeFailure, withConfirmation } from './changes';
+import { DynataSettingsPanel } from './DynataSettingsPanel';
 import { QuestionEditor } from './QuestionEditor';
 import { QuestionList } from './QuestionList';
+import { QuotaEditor } from './QuotaEditor';
+
+const TABS = ['Questions', 'Quotas', 'Dynata'] as const;
+type Tab = (typeof TABS)[number];
 
 const NEXT_STATUS: Record<SurveyStatus, { status: SurveyStatus; label: string }[]> = {
   draft: [{ status: 'test', label: 'Start testing' }],
@@ -24,34 +30,6 @@ const NEXT_STATUS: Record<SurveyStatus, { status: SurveyStatus; label: string }[
   closed: [],
 };
 
-/** Runs a change; if the survey is live and the API asks for confirmation, asks the editor. */
-async function withConfirmation<T>(change: (confirm: boolean) => Promise<T>): Promise<T> {
-  try {
-    return await change(false);
-  } catch (failure) {
-    const needsConfirm =
-      failure instanceof AdminApiError && failure.code === 'confirmation_required';
-    if (
-      needsConfirm &&
-      window.confirm('This survey is live. Change its screeners or quotas anyway?')
-    ) {
-      return change(true);
-    }
-    throw failure;
-  }
-}
-
-function describe(failure: unknown): string {
-  if (!(failure instanceof AdminApiError)) return 'Something went wrong.';
-  const details = Array.isArray(failure.details)
-    ? (failure.details as { message?: string }[])
-        .map((d) => d.message)
-        .filter(Boolean)
-        .join('; ')
-    : '';
-  return details ? `${failure.code}: ${details}` : failure.code;
-}
-
 export default function SurveyBuilderPage() {
   const { id = '' } = useParams();
   const me = useAdmin();
@@ -60,6 +38,7 @@ export default function SurveyBuilderPage() {
   const [editing, setEditing] = useState<{ blockCode: string; code: string | null } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [newBlock, setNewBlock] = useState('');
+  const [tab, setTab] = useState<Tab>('Questions');
 
   useEffect(() => {
     let active = true;
@@ -77,7 +56,7 @@ export default function SurveyBuilderPage() {
       setDetails(await change());
       return true;
     } catch (failure) {
-      setMessage(describe(failure));
+      setMessage(describeFailure(failure));
       return false;
     }
   }, []);
@@ -99,6 +78,16 @@ export default function SurveyBuilderPage() {
       ),
     );
     if (ok) setEditing({ blockCode, code: question.code });
+  }
+
+  function saveQuota(previousName: string | null, quota: QuotaInput) {
+    return apply(() =>
+      withConfirmation((confirm) =>
+        previousName
+          ? adminApi.saveQuota(id, previousName, quota, confirm)
+          : adminApi.addQuota(id, quota, confirm),
+      ),
+    );
   }
 
   function addBlock(event: SyntheticEvent) {
@@ -151,7 +140,55 @@ export default function SurveyBuilderPage() {
         </p>
       ) : null}
 
-      <div className="mt-6 grid gap-6">
+      <div role="tablist" aria-label="Survey sections" className="mt-6 flex gap-1 border-b">
+        {TABS.map((name) => (
+          <button
+            key={name}
+            role="tab"
+            type="button"
+            aria-selected={tab === name}
+            onClick={() => {
+              setTab(name);
+            }}
+            className={`h-11 border-b-2 px-4 text-sm font-medium ${
+              tab === name
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'Quotas' ? (
+        <div role="tabpanel" aria-label="Quotas" className="mt-6">
+          <QuotaEditor
+            quotas={definition.quotas ?? []}
+            counts={details.quotaCounts}
+            canEdit={canEdit}
+            onSave={saveQuota}
+            onDelete={(name) =>
+              void apply(() =>
+                withConfirmation((confirm) => adminApi.deleteQuota(id, name, confirm)),
+              )
+            }
+          />
+        </div>
+      ) : null}
+
+      {tab === 'Dynata' ? (
+        <div role="tabpanel" aria-label="Dynata" className="mt-6">
+          <DynataSettingsPanel surveyId={id} entryUrl={details.entryUrl} canEdit={canEdit} />
+        </div>
+      ) : null}
+
+      <div
+        role="tabpanel"
+        aria-label="Questions"
+        hidden={tab !== 'Questions'}
+        className="mt-6 grid gap-6"
+      >
         {editing ? (
           <QuestionEditor
             key={editing.code ?? `new-${editing.blockCode}`}

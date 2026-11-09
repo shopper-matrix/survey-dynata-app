@@ -1,4 +1,11 @@
-import type { FastifyInstance } from 'fastify';
+import type { PrismaClient } from '@survey-dynata/shared/db/client';
+import type { FastifyInstance, preHandlerAsyncHookHandler } from 'fastify';
+
+export interface AdminRouteOptions {
+  db: PrismaClient;
+  editor: preHandlerAsyncHookHandler;
+  viewer: preHandlerAsyncHookHandler;
+}
 
 // Provider-neutral view of a sample provider (Dynata today; Cint, Lucid… later). Routes only
 // use this interface, so provider-specific names stay inside the provider's own module.
@@ -24,6 +31,8 @@ export interface SampleProvider {
   testEntryUrl(surveyEntryUrl: string, panelRespondentId: string): string;
   /** Provider-specific routes, e.g. a local end page in mock mode. */
   registerRoutes?(app: FastifyInstance): void;
+  /** Provider settings per survey for the admin area (route guards are passed in). */
+  registerAdminRoutes?(app: FastifyInstance, options: AdminRouteOptions): void;
 }
 
 /** The provider could not be reached or answered unexpectedly. */

@@ -25,7 +25,19 @@ export interface SurveyDetails {
   pausedAt: string | null;
   updatedAt: string;
   respondents: number;
+  /** Link the sample provider sends respondents to. */
+  entryUrl: string;
+  /** Current count per quota cell name. */
+  quotaCounts: Record<string, number>;
   definition: SurveyDefinitionInput;
+}
+
+export type QuotaInput = NonNullable<SurveyDefinitionInput['quotas']>[number];
+
+export interface DynataSettings {
+  projectId: string | null;
+  mode: 'mock' | 'live';
+  keyConfigured: boolean;
 }
 
 export type QuestionInput = SurveyDefinitionInput['blocks'][number]['questions'][number];
@@ -110,4 +122,22 @@ export const adminApi = {
       `${survey(id)}/blocks/${encodeURIComponent(blockCode)}/reorder`,
       { codes },
     ),
+
+  addQuota: (id: string, quota: QuotaInput, confirm = false) =>
+    request<SurveyDetails>('POST', withConfirm(`${survey(id)}/quotas`, confirm), quota),
+  saveQuota: (id: string, name: string, quota: QuotaInput, confirm = false) =>
+    request<SurveyDetails>(
+      'PUT',
+      withConfirm(`${survey(id)}/quotas/${encodeURIComponent(name)}`, confirm),
+      quota,
+    ),
+  deleteQuota: (id: string, name: string, confirm = false) =>
+    request<SurveyDetails>(
+      'DELETE',
+      withConfirm(`${survey(id)}/quotas/${encodeURIComponent(name)}`, confirm),
+    ),
+
+  dynata: (id: string) => request<DynataSettings>('GET', `${survey(id)}/dynata`),
+  saveDynata: (id: string, projectId: string) =>
+    request<DynataSettings>('PUT', `${survey(id)}/dynata`, { projectId }),
 };

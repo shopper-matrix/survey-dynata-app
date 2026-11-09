@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { createTurnstile, type BotCheck } from './bot-check/turnstile.js';
 import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
+import { requireAdmin } from './admin/auth.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
 import { registerAdminAuthRoutes } from './routes/admin-auth.js';
 import { registerAdminExportRoutes } from './routes/admin-export.js';
@@ -45,7 +46,12 @@ export async function buildApp({
   provider.registerRoutes?.(app);
   const idleMinutes = env.ADMIN_SESSION_IDLE_MINUTES ?? 30;
   registerAdminAuthRoutes(app, { db, secureCookies, idleMinutes });
-  registerAdminSurveyRoutes(app, { db, idleMinutes });
+  registerAdminSurveyRoutes(app, { db, idleMinutes, appBaseUrl: env.APP_BASE_URL });
+  provider.registerAdminRoutes?.(app, {
+    db,
+    editor: requireAdmin(db, 'editor', idleMinutes),
+    viewer: requireAdmin(db, 'viewer', idleMinutes),
+  });
   registerAdminTestLinkRoutes(app, { db, provider, appBaseUrl: env.APP_BASE_URL, idleMinutes });
   registerAdminExportRoutes(app, { db, idleMinutes });
   registerTestEndPage(app);
