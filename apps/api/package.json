@@ -4,10 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "@survey-dynata/shared": "workspace:*"
+    "@survey-dynata/shared": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15"
   }
 }

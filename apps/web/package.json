@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@survey-dynata/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^8.3.6"
   }
 }

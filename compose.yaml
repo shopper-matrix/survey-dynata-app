@@ -1,0 +1,59 @@
+name: survey-dynata-app
+
+# Local development environment: `docker compose up`
+# The repo is bind-mounted into the containers for hot reload. Each node_modules folder is an
+# anonymous volume so the container keeps its own Linux-built dependencies.
+x-node-app: &node-app
+  build:
+    context: .
+    dockerfile: docker/dev.Dockerfile
+  volumes:
+    - .:/app
+    - /app/node_modules
+    - /app/apps/web/node_modules
+    - /app/apps/api/node_modules
+    - /app/packages/shared/node_modules
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: survey
+      POSTGRES_PASSWORD: survey
+      POSTGRES_DB: survey_dynata
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U survey -d survey_dynata']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  api:
+    <<: *node-app
+    command: pnpm --filter @survey-dynata/api dev
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://survey:survey@db:5432/survey_dynata
+      CHOKIDAR_USEPOLLING: 'true'
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *node-app
+    command: pnpm --filter @survey-dynata/web dev
+    environment:
+      API_PROXY_TARGET: http://api:3000
+      VITE_USE_POLLING: 'true'
+    ports:
+      - '${WEB_PORT:-5173}:5173'
+    depends_on:
+      - api
+
+volumes:
+  db-data:
