@@ -1,6 +1,9 @@
 import type { Prisma, PrismaClient } from '@survey-dynata/shared/db/client';
 import type { EndOutcome, SampleProvider } from '../providers/sample-provider.js';
 
+/** Many respondents may finish at once and queue on the quota row locks. */
+const TRANSACTION_OPTIONS = { maxWait: 15_000, timeout: 15_000 };
+
 export interface SessionEnd {
   outcome: EndOutcome;
   redirectUrl: string;
@@ -46,7 +49,7 @@ export async function endSession(
     });
     await tx.redirectLog.create({ data: { respondentId, outcome: final, url: redirectUrl } });
     return { outcome: final, redirectUrl };
-  });
+  }, TRANSACTION_OPTIONS);
 }
 
 /** The stored end of a finished session, if any. */

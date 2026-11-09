@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { respondentIdFromSession } from '../http/session.js';
 import type { SampleProvider } from '../providers/sample-provider.js';
+import { inFullQuota } from '../quotas/quotas.js';
 import { failsScreening } from '../screening/screening.js';
 import { endSession, storedSessionEnd, type OutcomeHook } from '../session/end-session.js';
 import { loadFlowSurvey, loadRespondentState } from '../survey-flow/load.js';
@@ -120,8 +121,12 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     });
     state.answers.set(question.code, value.data as AnswerValue);
 
-    if (failsScreening(question.screenOutRules, conditionContext(state))) {
+    const ctx = conditionContext(state);
+    if (failsScreening(question.screenOutRules, ctx)) {
       return { done: true, ...(await endSession(db, provider, respondent.id, 'screenout')) };
+    }
+    if (await inFullQuota(db, respondent.surveyId, ctx)) {
+      return { done: true, ...(await endSession(db, provider, respondent.id, 'overquota')) };
     }
     return screenResponse((await resolveWalk(db, survey, state)).step);
   });
