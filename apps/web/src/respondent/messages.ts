@@ -32,6 +32,20 @@ export const en = {
   showAgainNotPossible: 'The picture was shown once. Please answer from memory.',
   continue: 'Continue',
   next: 'Next',
+  end: {
+    complete: { title: 'Thank you!', message: 'Your answers have been saved.' },
+    screenout: {
+      title: 'Thank you for your time',
+      message: 'This survey is looking for a different profile, so it ends here.',
+    },
+    overquota: {
+      title: 'Thank you for your interest',
+      message: 'We already have enough answers from people like you.',
+    },
+    quality: { title: 'Thank you for your time', message: 'This survey ends here.' },
+  },
+  redirecting: 'Taking you back to your panel…',
+  notRedirected: 'Not taken back automatically?',
   progress: 'Survey progress',
   invalid: {
     single_choice: 'Please choose one answer.',

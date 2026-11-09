@@ -2,14 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { PrimaryButton } from '@/components/survey/PrimaryButton';
 import { SurveyLayout } from '@/components/survey/SurveyLayout';
 import { ApiError, sessionApi, type Screen } from './api';
+import { EndView } from './EndView';
 import { en } from './messages';
 import { QuestionView } from './QuestionView';
 import { WelcomeView } from './WelcomeView';
-
-/** Where the session ends: the provider's end link (or the internal test page). */
-function leave(redirectUrl: string) {
-  window.location.replace(redirectUrl);
-}
 
 /**
  * The respondent survey at /survey: shows whatever screen the server says comes next. The
@@ -23,7 +19,6 @@ export function SurveyPage() {
 
   const show = useCallback((next: Screen) => {
     setScreen(next);
-    if (next.done && next.redirectUrl) leave(next.redirectUrl);
   }, []);
 
   const run = useCallback(
@@ -133,6 +128,10 @@ export function SurveyPage() {
         }}
       />
     );
+  }
+
+  if (screen.redirectUrl) {
+    return <EndView outcome={screen.outcome} redirectUrl={screen.redirectUrl} t={t} />;
   }
 
   return (

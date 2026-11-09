@@ -66,9 +66,12 @@ describe('SurveyPage welcome (DSA-402)', () => {
     vi.stubGlobal('location', { replace });
     render(<SurveyPage />);
     await userEvent.click(await screen.findByRole('button', { name: 'No thanks' }));
-    await vi.waitFor(() => {
-      expect(replace).toHaveBeenCalledWith('/end?rst=2');
-    });
+    await vi.waitFor(
+      () => {
+        expect(replace).toHaveBeenCalledWith('/end?rst=2');
+      },
+      { timeout: 3000 },
+    );
   });
 });
 
@@ -132,8 +135,11 @@ describe('SurveyPage flow (DSA-404)', () => {
 
     await userEvent.click(screen.getByText('Nein'));
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await vi.waitFor(() => {
-      expect(replace).toHaveBeenCalledWith('/end?rst=1');
-    });
+    await vi.waitFor(
+      () => {
+        expect(replace).toHaveBeenCalledWith('/end?rst=1');
+      },
+      { timeout: 3000 },
+    );
   });
 });
