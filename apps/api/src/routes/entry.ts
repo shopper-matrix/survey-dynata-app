@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from '@survey-dynata/shared/db/client';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { deviceTypeFromUserAgent } from '../http/device.js';
+import { isTestRespondentId } from '../test-links/test-links.js';
 import { pages } from '../http/pages.js';
 import { startRespondentSession } from '../http/session.js';
 import {
@@ -95,7 +96,7 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
         data: {
           surveyId: survey.id,
           panelRespondentId,
-          isTest: survey.status === 'test',
+          isTest: survey.status === 'test' || isTestRespondentId(panelRespondentId),
           deviceType: deviceTypeFromUserAgent(request.headers['user-agent']),
         },
       });

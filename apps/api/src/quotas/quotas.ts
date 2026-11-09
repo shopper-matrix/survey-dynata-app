@@ -46,7 +46,8 @@ export async function inFullQuota(
  * cap cell is full, otherwise count the complete in every matching cell.
  */
 export const applyQuotasOnComplete: OutcomeHook = async (tx, respondent, outcome) => {
-  if (outcome !== 'complete') return outcome;
+  // Test respondents run the real flow but never take a quota slot.
+  if (outcome !== 'complete' || respondent.isTest) return outcome;
 
   // Lock in a fixed order so concurrent completes queue instead of deadlocking.
   const cells = await tx.$queryRaw<Cell[]>`

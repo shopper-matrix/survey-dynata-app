@@ -7,6 +7,7 @@ import { DynataApiError, type DynataClient, type DynataLinks } from './client.js
 import type { DynataConfig } from './config.js';
 import { mockEndLink } from './mock-links.js';
 import { registerMockEndPage } from './mock-end-page.js';
+import { signUrl } from './signature.js';
 
 /**
  * Dynata's API returns no link for quality terminations (open question, see
@@ -61,6 +62,11 @@ export function createDynataProvider({
         throw new Error('Live Dynata end links are not implemented yet (DSA-304 is parked).');
       }
       return mockEndLink(appBaseUrl, config.secret, respondent.panelRespondentId, outcome);
+    },
+
+    testEntryUrl(surveyEntryUrl, panelRespondentId) {
+      const query = new URLSearchParams({ psid: panelRespondentId, _k: config.keyId });
+      return signUrl(`${surveyEntryUrl}?${query.toString()}`, config.secret);
     },
 
     ...(mock

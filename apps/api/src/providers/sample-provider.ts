@@ -20,6 +20,8 @@ export interface SampleProvider {
   verifyEntry(entryUrl: string): Promise<EntryVerification>;
   /** The (signed) link that returns a respondent to the provider with this outcome. */
   endLink(respondent: { panelRespondentId: string }, outcome: EndOutcome): string;
+  /** An entry link for a test respondent, signed like the provider would sign it. */
+  testEntryUrl(surveyEntryUrl: string, panelRespondentId: string): string;
   /** Provider-specific routes, e.g. a local end page in mock mode. */
   registerRoutes?(app: FastifyInstance): void;
 }
