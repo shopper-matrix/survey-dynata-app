@@ -2,3 +2,5 @@ dist
 build
 coverage
 pnpm-lock.yaml
+# Source documents, kept exactly as authored
+docs
