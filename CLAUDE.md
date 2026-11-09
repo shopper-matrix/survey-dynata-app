@@ -54,7 +54,21 @@ docker compose up            # web :5173, api :3000 (/health), postgres :5432, h
 pnpm lint | pnpm typecheck | pnpm test | pnpm build | pnpm format
 docker compose up --build -V # after any package.json / lockfile change
 docker compose down -v       # wipe the local database
+pnpm db:migrate --name <change>  # schema change → new migration (never edit applied ones)
+pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, need a database)
 ```
+
+## Database (Prisma 7)
+
+- Schema: `apps/api/prisma/schema.prisma`; config: `apps/api/prisma.config.ts` (loads root `.env`).
+- The client is generated into `packages/shared/src/generated/prisma` (git-ignored). Import types
+  and enums from `@survey-dynata/shared/db` (browser-safe) and the client only in the API via
+  `@survey-dynata/shared/db/client` (`apps/api/src/db.ts`).
+- Questions are generic: `type` enum + `config` JSON validated per type with Zod. A new question
+  type adds an enum value and a config schema, not a table.
+- `Respondent.panelRespondentId` is provider-neutral; Dynata names stay in `apps/api/src/dynata/`.
+- `docs/Fragebogen.md` (client questionnaire, git-ignored, never commit) is the reference survey
+  the question types must support.
 
 ## Conventions
 
@@ -83,10 +97,14 @@ docker compose down -v       # wipe the local database
 - DSA-105 done: clickable prototype with fake data in `apps/web/src/prototype/` (React Router,
   shadcn/ui radix-nova preset, Tailwind v4). It is the design reference for DSA-401. Replace
   prototype screens with real ones as features land, and delete them once unused.
-- Next: DSA-106 (Dynata specs + mock Dynata mode).
+- DSA-106 is postponed (user's decision); mock Dynata mode still applies.
+- DSA-201 done: Prisma schema + first migration; CI runs `migrate deploy` and DB tests against a
+  Postgres service. Next: DSA-202 (demo seed data).
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
 - Deviations to keep in mind:
   - The API is currently a plain `node:http` server. Fastify comes in with the first real routes.
+  - Prisma 7.10 doesn't list Node 26 as supported yet (20.19+, 22.12+, 24+). It works here
+    (generate, migrate, queries tested), but switch Docker/CI to Node 24 if problems appear.
   - Postgres is 18 (guide: 16).
   - Node 26 is used locally, in Docker and in CI (guide: 20 LTS; `engines` allows >=20).
   - The compose file is `compose.yaml` (guide: `docker-compose.yml`).
