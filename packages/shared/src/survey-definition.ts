@@ -56,7 +56,8 @@ export const blockDefinitionSchema = z.object({
   title: z.string().min(1),
   rotationGroup: z.string().min(1).optional(),
   displayLogic: conditionSchema.optional(),
-  questions: z.array(questionDefinitionSchema).min(1),
+  /** May be empty while a survey is being built. */
+  questions: z.array(questionDefinitionSchema),
 });
 
 export const quotaDefinitionSchema = z.object({

@@ -6,6 +6,7 @@ import type { Env } from './env.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { applyQuotasOnComplete } from './quotas/quotas.js';
 import { registerAdminAuthRoutes } from './routes/admin-auth.js';
+import { registerAdminSurveyRoutes } from './routes/admin-surveys.js';
 import { registerEntryRoute } from './routes/entry.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerSessionRoutes } from './routes/session.js';
@@ -35,11 +36,9 @@ export async function buildApp({
   registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
   registerSessionRoutes(app, { db, provider, beforeEnd: applyQuotasOnComplete });
   provider.registerRoutes?.(app);
-  registerAdminAuthRoutes(app, {
-    db,
-    secureCookies,
-    idleMinutes: env.ADMIN_SESSION_IDLE_MINUTES ?? 30,
-  });
+  const idleMinutes = env.ADMIN_SESSION_IDLE_MINUTES ?? 30;
+  registerAdminAuthRoutes(app, { db, secureCookies, idleMinutes });
+  registerAdminSurveyRoutes(app, { db, idleMinutes });
 
   return app;
 }
