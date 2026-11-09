@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import pg from 'pg';
+import { createDb } from './db.js';
 import { EnvValidationError, loadEnv, type Env } from './env.js';
 import { getHealth } from './health.js';
 
@@ -14,11 +14,7 @@ try {
   throw error;
 }
 
-const pool = new pg.Pool({ connectionString: env.DATABASE_URL });
-// An idle client losing its connection must not crash the process.
-pool.on('error', (error) => {
-  console.error('Postgres pool error:', error.message);
-});
+const db = createDb(env.DATABASE_URL);
 
 function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -28,7 +24,7 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown): void 
 async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method === 'GET' && req.url === '/health') {
     const health = await getHealth(async () => {
-      await pool.query('SELECT 1');
+      await db.$queryRaw`SELECT 1`;
     });
     sendJson(res, health.status === 'ok' ? 200 : 503, health);
     return;
@@ -49,7 +45,7 @@ server.listen(env.PORT, () => {
 
 function shutdown(): void {
   server.close(() => {
-    void pool.end().finally(() => process.exit(0));
+    void db.$disconnect().finally(() => process.exit(0));
   });
 }
 process.on('SIGTERM', shutdown);

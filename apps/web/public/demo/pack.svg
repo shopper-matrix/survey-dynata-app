@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" role="img" aria-label="Neutral demo snack bar pack">
+  <!-- Neutral placeholder pack for demo stimuli; no real brand. -->
+  <rect x="4" y="4" width="392" height="152" rx="18" fill="#e7e5e4" stroke="#57534e" stroke-width="4" />
+  <rect x="24" y="44" width="200" height="72" rx="12" fill="#a8a29e" />
+  <text x="124" y="88" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#1c1917" text-anchor="middle">DEMO BAR</text>
+  <circle cx="290" cy="80" r="22" fill="#d6d3d1" stroke="#57534e" stroke-width="3" />
+  <circle cx="345" cy="80" r="16" fill="#d6d3d1" stroke="#57534e" stroke-width="3" />
+</svg>

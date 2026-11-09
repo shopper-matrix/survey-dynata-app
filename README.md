@@ -24,7 +24,7 @@ The first run builds the images and takes a few minutes. Later runs start in sec
 
 | Service        | URL                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------- |
-| Web app        | http://localhost:5173                                                                    |
+| Web app        | http://localhost:5173 (UI prototype: index of every screen, fake data)                   |
 | API            | http://localhost:3000 (health check: http://localhost:3000/health)                       |
 | API (from web) | http://localhost:5173/api/... is proxied to the API, so the frontend can call `/api/...` |
 | PostgreSQL     | `localhost:5432`, user/password/database from `POSTGRES_*` in your `.env`                |
@@ -84,10 +84,38 @@ Requires Node.js 20+ and pnpm.
 pnpm install
 pnpm lint        # ESLint across all packages
 pnpm typecheck   # TypeScript (strict) in every package
-pnpm test        # Vitest in every package
+pnpm test        # Vitest in every package (unit tests, no database needed)
 pnpm build       # Production builds (apps/web/dist, apps/api/dist)
 pnpm format      # Prettier
 ```
+
+`lint`, `typecheck` and `test` regenerate the Prisma client first, so a fresh clone works without
+extra steps.
+
+## Database
+
+The schema is [apps/api/prisma/schema.prisma](apps/api/prisma/schema.prisma) (Prisma). The
+generated client and types live in `packages/shared/src/generated` (not committed) and are
+exported as `@survey-dynata/shared/db` (types and enums, safe for the browser) and
+`@survey-dynata/shared/db/client` (database client, API only).
+
+```sh
+pnpm db:migrate --name add-something   # change the schema: create + apply a migration (dev)
+pnpm db:deploy                         # apply pending migrations (CI, production)
+pnpm db:generate                       # regenerate the client after a schema change
+pnpm db:seed                           # (re)create the demo survey with 50 fake respondents
+pnpm --filter @survey-dynata/api test:db   # database tests (needs a running database)
+```
+
+### Demo data
+
+`pnpm db:seed` (or `docker compose exec api pnpm db:seed`) creates the survey "Demo: Snack Bar
+Study": one question of every type, two screeners, two quota cells and 50 fake respondents
+(`TEST-0001` … `TEST-0050`) across all outcomes. Running it again replaces the demo survey; it
+refuses to run with `NODE_ENV=production`. No real personal data is involved.
+
+`docker compose up` applies pending migrations automatically when the API starts. Commands run on
+your machine use `DATABASE_URL` from `.env` (pointing at `localhost:5432`).
 
 ## CI
 

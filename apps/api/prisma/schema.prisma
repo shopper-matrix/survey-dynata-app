@@ -1,0 +1,222 @@
+// Database schema (DSA-201). Data model: docs/Implementation_guide.md, Phase 2.
+// Change it with `pnpm db:migrate --name <change>`; never edit applied migrations.
+
+generator client {
+  provider            = "prisma-client"
+  // Generated into packages/shared so web and api share the model types and enums.
+  output              = "../../../packages/shared/src/generated/prisma"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SurveyStatus {
+  draft
+  test
+  live
+  closed
+}
+
+/// Question types. Each type's options, rows, scales and stimuli live in Question.config,
+/// validated by a per-type Zod schema, so a new type needs no new table.
+enum QuestionType {
+  info
+  single_choice
+  multi_choice
+  grid_single
+  grid_multi
+  open_text
+  number
+  rating
+  slider
+  semantic_differential
+  maxdiff
+  constant_sum
+  mapping
+  click_map
+  paired_comparison
+  timed_exposure
+}
+
+enum ScreeningAction {
+  screenout
+}
+
+/// cap: entrants beyond the target are over-quota. minimum: a floor to monitor, never closes.
+enum QuotaKind {
+  cap
+  minimum
+}
+
+enum RespondentStatus {
+  started
+  complete
+  screenout
+  overquota
+  quality
+  abandoned
+}
+
+enum Outcome {
+  complete
+  screenout
+  overquota
+  quality
+}
+
+enum DeviceType {
+  phone
+  tablet
+  desktop
+}
+
+enum AdminRole {
+  owner
+  editor
+  viewer
+}
+
+model Survey {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  title           String
+  status          SurveyStatus @default(draft)
+  targetCompletes Int
+  language        String       @default("en")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  blocks      Block[]
+  questions   Question[]
+  quotaCells  QuotaCell[]
+  respondents Respondent[]
+}
+
+/// Group of questions shown together, e.g. "A Screening". Filters and rotation apply per block.
+model Block {
+  id            String  @id @default(uuid(7)) @db.Uuid
+  surveyId      String  @db.Uuid
+  code          String
+  title         String
+  position      Int
+  /// Conditions under which the block is shown; null = always.
+  displayLogic  Json?
+  /// Blocks sharing a rotation group are shown in random order among themselves.
+  rotationGroup String?
+
+  survey    Survey     @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@unique([surveyId, code])
+  @@unique([surveyId, position])
+}
+
+model Question {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  surveyId         String       @db.Uuid
+  blockId          String       @db.Uuid
+  code             String
+  position         Int
+  type             QuestionType
+  text             String
+  config           Json         @default("{}")
+  isScreener       Boolean      @default(false)
+  isAttentionCheck Boolean      @default(false)
+  displayLogic     Json?
+
+  survey         Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  block          Block           @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  screeningRules ScreeningRule[]
+  answers        Answer[]
+
+  @@unique([surveyId, code])
+  @@unique([blockId, position])
+}
+
+model ScreeningRule {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  questionId String          @db.Uuid
+  condition  Json
+  action     ScreeningAction @default(screenout)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+model QuotaCell {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  surveyId     String    @db.Uuid
+  name         String
+  conditions   Json
+  target       Int
+  currentCount Int       @default(0)
+  kind         QuotaKind @default(cap)
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, name])
+}
+
+model Respondent {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  surveyId          String           @db.Uuid
+  /// ID the sample provider sends in the entry URL.
+  panelRespondentId String
+  status            RespondentStatus @default(started)
+  isTest            Boolean          @default(false)
+  startedAt         DateTime         @default(now())
+  endedAt           DateTime?
+  deviceType        DeviceType?
+  /// Salted hash only, never the raw IP.
+  ipHash            String?
+  qualityFlags      Json             @default("[]")
+  /// Random test-group assignments, e.g. split cells and claim variants.
+  assignments       Json             @default("{}")
+
+  survey       Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  answers      Answer[]
+  redirectLogs RedirectLog[]
+
+  // The same person can never be counted twice in one survey.
+  @@unique([surveyId, panelRespondentId])
+  @@index([surveyId, status])
+}
+
+model Answer {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  respondentId   String   @db.Uuid
+  questionId     String   @db.Uuid
+  value          Json
+  responseTimeMs Int?
+  answeredAt     DateTime @default(now())
+
+  respondent Respondent @relation(fields: [respondentId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([respondentId, questionId])
+  @@index([questionId])
+}
+
+/// Every end link sent to the sample provider; used to reconcile counts with the invoice.
+model RedirectLog {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  respondentId String   @db.Uuid
+  outcome      Outcome
+  url          String
+  createdAt    DateTime @default(now())
+
+  respondent Respondent @relation(fields: [respondentId], references: [id], onDelete: Cascade)
+
+  @@index([respondentId])
+}
+
+model AdminUser {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(viewer)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

@@ -7,3 +7,7 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+
+# Confidential client questionnaire (reference only, never commit)
+docs/Fragebogen.md
+packages/shared/src/generated/

@@ -36,7 +36,8 @@ services:
 
   api:
     <<: *node-app
-    command: pnpm --filter @survey-dynata/api dev
+    # Generate the Prisma client and apply pending migrations before starting the dev server.
+    command: sh -c "pnpm db:generate && pnpm db:deploy && pnpm --filter @survey-dynata/api dev"
     environment:
       NODE_ENV: development
       PORT: 3000
