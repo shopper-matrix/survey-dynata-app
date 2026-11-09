@@ -16,6 +16,21 @@ export const en = {
     'This survey link is no longer valid. Please open the survey again from your invitation.',
   error: 'Something went wrong. Please try again.',
   retry: 'Try again',
+  cannotJudge: 'I can’t say',
+  best: 'Most important',
+  worst: 'Least important',
+  setOf: (n: number, total: number) => `Set ${String(n)} of ${String(total)}`,
+  pointsLeft: (n: number) => `${String(n)} points left to distribute`,
+  pointsOver: (n: number) => `${String(n)} points too many`,
+  group: (n: number) => `Group ${String(n)}`,
+  groupFor: (item: string) => `Group for ${item}`,
+  horizontal: 'Left ↔ right',
+  vertical: 'Bottom ↔ top',
+  whereFor: (target: string) => `Where for: ${target}?`,
+  pair: (n: number, total: number) => `Comparison ${String(n)} of ${String(total)}`,
+  lookClosely: 'Look closely. The picture disappears after a few seconds.',
+  showAgainNotPossible: 'The picture was shown once. Please answer from memory.',
+  continue: 'Continue',
 };
 
 export type Messages = typeof en;
