@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { conditionSchema, referencedQuestions } from './conditions.js';
+import { conditionSchema, referencedAssignments, referencedQuestions } from './conditions.js';
 
 describe('conditionSchema', () => {
   it('accepts nested AND / OR conditions', () => {
@@ -32,5 +32,17 @@ describe('conditionSchema', () => {
       ],
     });
     expect(referencedQuestions(condition)).toEqual(['A1', 'A3']);
+  });
+
+  it('supports "includes none" and conditions on test-group assignments', () => {
+    const condition = conditionSchema.parse({
+      all: [
+        { question: 'A6', op: 'includes_none', value: ['bars'] },
+        { assignment: 'H3', op: 'equals', value: 'B' },
+        { assignment: 'G9', op: 'in', value: ['v1', 'v2'] },
+      ],
+    });
+    expect(referencedQuestions(condition)).toEqual(['A6']);
+    expect(referencedAssignments(condition)).toEqual(['H3', 'G9']);
   });
 });

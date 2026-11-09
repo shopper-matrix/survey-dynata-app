@@ -1,4 +1,4 @@
-import type { Condition, QuestionConfigInput } from '@survey-dynata/shared';
+import type { Condition, QuestionConfigInput, SurveyDefinitionInput } from '@survey-dynata/shared';
 import type { QuestionType } from '@survey-dynata/shared/db';
 
 // Demo survey for contributors and local development: one question of every type, two
@@ -326,3 +326,15 @@ export const demoQuotaCells = [
     target: 12,
   },
 ];
+
+/** The demo survey in the import format (`pnpm survey:import` uses the same writer). */
+export const demoDefinition: SurveyDefinitionInput = {
+  survey: {
+    id: DEMO_SURVEY_ID,
+    title: demoSurvey.title,
+    language: demoSurvey.language,
+    targetCompletes: demoSurvey.targetCompletes,
+  },
+  blocks: demoBlocks,
+  quotas: demoQuotaCells,
+};

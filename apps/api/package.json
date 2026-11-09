@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:validate": "prisma validate",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "survey:import": "tsx src/survey-import/cli.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

@@ -115,6 +115,17 @@ Study": one question of every type, two screeners, two quota cells and 50 fake r
 (`TEST-0001` … `TEST-0050`) across all outcomes. Running it again replaces the demo survey; it
 refuses to run with `NODE_ENV=production`. No real personal data is involved.
 
+### Importing a questionnaire
+
+```sh
+pnpm survey:import path/to/survey.json
+```
+
+Validates a survey definition (format: [packages/shared/src/survey-definition.ts](packages/shared/src/survey-definition.ts))
+and writes it as a draft. Re-importing replaces the survey, unless it already has respondents.
+Client questionnaires are confidential: keep their definition files in the git-ignored `private/`
+folder, never elsewhere in the repo.
+
 `docker compose up` applies pending migrations automatically when the API starts. Commands run on
 your machine use `DATABASE_URL` from `.env` (pointing at `localhost:5432`).
 

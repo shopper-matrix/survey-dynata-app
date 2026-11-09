@@ -7,3 +7,4 @@ export function isNonEmptyString(value: unknown): value is string {
 
 export * from './conditions.js';
 export * from './questions/config.js';
+export * from './survey-definition.js';

@@ -115,7 +115,13 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   signed `respondent` session cookie (`SESSION_SECRET`). In development `APP_BASE_URL` is the web
   dev server (http://localhost:5173), which proxies `/s/` and `/mock-dynata/` to the API.
   Quality outcome uses Dynata's screen-out link until Dynata answers (`dynata/provider.ts`).
-  Next: DSA-303 (project check, entry log, per-survey signature switch for test mode).
+- DSA-203 done: survey definition format (`packages/shared/src/survey-definition.ts`) and
+  `pnpm survey:import <file>` (same writer as the demo seed). The real Rawbite questionnaire is
+  `private/surveys/rawbite-phase2.json` (git-ignored, client content: never commit, never copy
+  its texts into committed files). Gaps the engine can't express yet are in each question's
+  `notes`.
+- Next: DSA-303 — re-plan first: Dynata's "Survey Details, Links & Redirects" article changes
+  the assumptions (see `docs/dynata-integration.md`).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

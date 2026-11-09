@@ -16,6 +16,7 @@ Nov 9, 2026
 | DSA-106 | Collect Dynata integration specs | Setup | Must | 1 | — | To do |
 | DSA-201 | Prisma schema and first migration | Data model | Must | 5 | 102 | To do |
 | DSA-202 | Demo seed data | Data model | Should | 2 | 201 | To do |
+| DSA-203 | Survey import and Rawbite questionnaire | Data model | Must | 3 | 202 | To do |
 | DSA-301 | Dynata configuration and signed-link client | Dynata | Must | 2 | 201, 106 | To do |
 | DSA-302 | Entry endpoint | Dynata | Must | 5 | 301 | To do |
 | DSA-303 | Incoming signature verification | Dynata | Must | 3 | 302, 106 | To do |
@@ -132,6 +133,14 @@ Each sprint carries about 25–30 points and ends with a demo. The team should a
 
 - `pnpm db:seed` creates one demo survey with every question type, screeners, two quota cells and 50 fake respondents across all outcomes.
 - Seed uses obviously fake IDs (e.g. `TEST-0001`) and no real personal data.
+
+### DSA-203 · Survey import and Rawbite questionnaire
+
+*As a researcher, I want to load a complete questionnaire from a file, so that real studies can be set up without hand-entering every question.*
+
+- `pnpm survey:import <file.json>` validates a survey definition (blocks, questions of every type, screen-outs, quotas incl. minimum targets, random test-group assignments) and writes it as a draft; re-importing replaces it unless it has respondents.
+- Definition format extensions: piping (`pipeFrom`), `includes_none` conditions, conditions on test-group assignments, programming notes for what the engine cannot express yet.
+- The client questionnaire (Rawbite, `docs/Fragebogen.md`) is maintained as a definition in the git-ignored `private/` folder and never committed.
 
 ## Epic 3 — Dynata integration and survey engine
 

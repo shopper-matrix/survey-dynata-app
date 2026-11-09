@@ -84,6 +84,10 @@ model Survey {
   status          SurveyStatus @default(draft)
   targetCompletes Int
   language        String       @default("en")
+  /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.
+  assignments     Json         @default("[]")
+  /// Programming notes for what the engine cannot express yet.
+  notes           String[]     @default([])
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -137,6 +141,8 @@ model Question {
   isScreener       Boolean      @default(false)
   isAttentionCheck Boolean      @default(false)
   displayLogic     Json?
+  /// Programming notes for what the engine cannot express yet.
+  notes            String[]     @default([])
 
   survey         Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   block          Block           @relation(fields: [blockId], references: [id], onDelete: Cascade)

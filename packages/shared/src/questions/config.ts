@@ -26,12 +26,24 @@ const uniqueIds = (items: { id: string }[]) =>
 const options = z.array(optionSchema).min(2).refine(uniqueIds, 'Option ids must be unique');
 const stimuli = z.array(stimulusSchema).min(1).refine(uniqueIds, 'Stimulus ids must be unique');
 
-const choice = z.object({ options, randomize: z.boolean().default(false) });
+/**
+ * Piping: show only the options (or grid rows) whose ids the respondent chose in an earlier
+ * question (for a grid source: rows with at least one non-exclusive answer). Exclusive options
+ * ("none of these") are always shown.
+ */
+export const pipeSchema = z.object({ question: z.string().min(1) });
+
+const choice = z.object({
+  options,
+  randomize: z.boolean().default(false),
+  pipeFrom: pipeSchema.optional(),
+});
 
 const grid = z.object({
   rows: z.array(optionSchema).min(1).refine(uniqueIds, 'Row ids must be unique'),
   columns: options,
   randomizeRows: z.boolean().default(false),
+  pipeFrom: pipeSchema.optional(),
 });
 
 const scaleEnds = { lowLabel: text, highLabel: text };
