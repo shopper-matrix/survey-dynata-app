@@ -7,6 +7,7 @@ import { defineConfig } from 'vite';
 // Docker on Windows/macOS doesn't forward file-change events into bind mounts, so compose sets
 // VITE_USE_POLLING=true to make hot reload work inside the container.
 const usePolling = process.env.VITE_USE_POLLING === 'true';
+const apiTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -18,12 +19,16 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: usePolling ? { usePolling: true, interval: 300 } : {},
+    // One address in development, as in production: the API also serves the survey entry links
+    // (/s/…) and the mock Dynata end page. Regex keys: '/s' alone would also match '/survey'.
     proxy: {
       '/api': {
-        target: process.env.API_PROXY_TARGET ?? 'http://localhost:3000',
+        target: apiTarget,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '^/s/': { target: apiTarget },
+      '^/mock-dynata/': { target: apiTarget },
     },
   },
   test: {

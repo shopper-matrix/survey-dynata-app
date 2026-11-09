@@ -15,6 +15,10 @@ const envSchema = z
       .regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres:// connection string'),
     /** Public address of the API, used in links given to sample providers. */
     APP_BASE_URL: z.url({ error: 'is required and must be a URL' }),
+    /** Signs the respondent session cookie. */
+    SESSION_SECRET: z
+      .string({ error: 'is required' })
+      .min(32, 'must be at least 32 characters (use a long random value)'),
     ...dynataEnvShape,
   })
   .superRefine(checkDynataEnv);

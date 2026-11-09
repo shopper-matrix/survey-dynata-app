@@ -5,6 +5,7 @@ import { EnvValidationError, loadEnv } from './env.js';
 const required = {
   DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
   APP_BASE_URL: 'http://localhost:3000',
+  SESSION_SECRET: 'x'.repeat(32),
 };
 
 describe('loadEnv', () => {
@@ -39,11 +40,17 @@ describe('loadEnv', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(EnvValidationError);
       const { problems } = error as EnvValidationError;
-      expect(problems).toHaveLength(4);
-      for (const name of ['DATABASE_URL', 'PORT', 'NODE_ENV', 'APP_BASE_URL']) {
+      expect(problems).toHaveLength(5);
+      for (const name of ['DATABASE_URL', 'PORT', 'NODE_ENV', 'APP_BASE_URL', 'SESSION_SECRET']) {
         expect(problems.join('\n')).toContain(name);
       }
     }
+  });
+
+  it('rejects a short SESSION_SECRET', () => {
+    expect(() => loadEnv({ ...required, SESSION_SECRET: 'short' })).toThrow(
+      /SESSION_SECRET: must be at least 32 characters/,
+    );
   });
 
   it('requires Dynata credentials in live mode only', () => {

@@ -109,12 +109,17 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   (`apps/api/src/seed/`).
 - DSA-301 done: `apps/api/src/dynata/` (config, signature, client mock/live, entry URL) and
   `DynataSurveySettings` (survey ↔ project ID). Backlog DSA-301…305/503 were rewritten after
-  Dynata's signed-link document (end links come pre-signed from the API at entry). Next: DSA-302.
+  Dynata's signed-link document (end links come pre-signed from the API at entry).
+- DSA-302 done: Fastify app (`src/app.ts` builds, `src/server.ts` starts), entry route
+  `GET /s/:surveyId` behind the provider-neutral `providers/sample-provider.ts` interface,
+  signed `respondent` session cookie (`SESSION_SECRET`). In development `APP_BASE_URL` is the web
+  dev server (http://localhost:5173), which proxies `/s/` and `/mock-dynata/` to the API.
+  Quality outcome uses Dynata's screen-out link until Dynata answers (`dynata/provider.ts`).
+  Next: DSA-303 (project check, entry log, per-survey signature switch for test mode).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
 - Deviations to keep in mind:
-  - The API is currently a plain `node:http` server. Fastify comes in with the first real routes.
   - Prisma 7.10 doesn't list Node 26 as supported yet (20.19+, 22.12+, 24+). It works here
     (generate, migrate, queries tested), but switch Docker/CI to Node 24 if problems appear.
   - Postgres is 18 (guide: 16).

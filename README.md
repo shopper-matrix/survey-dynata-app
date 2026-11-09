@@ -22,12 +22,13 @@ The first run builds the images and takes a few minutes. Later runs start in sec
 
 ### Local URLs
 
-| Service        | URL                                                                                      |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| Web app        | http://localhost:5173 (UI prototype: index of every screen, fake data)                   |
-| API            | http://localhost:3000 (health check: http://localhost:3000/health)                       |
-| API (from web) | http://localhost:5173/api/... is proxied to the API, so the frontend can call `/api/...` |
-| PostgreSQL     | `localhost:5432`, user/password/database from `POSTGRES_*` in your `.env`                |
+| Service        | URL                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| Web app        | http://localhost:5173 (UI prototype: index of every screen, fake data)                          |
+| API            | http://localhost:3000 (health check: http://localhost:3000/health)                              |
+| API (from web) | http://localhost:5173/api/... is proxied to the API, so the frontend can call `/api/...`        |
+| Survey entry   | http://localhost:5173/s/<surveyId>?project=…&psid=…&_k=…&_s=… (signed link, proxied to the API) |
+| PostgreSQL     | `localhost:5432`, user/password/database from `POSTGRES_*` in your `.env`                       |
 
 If a port is already taken on your machine, change `WEB_PORT`, `API_PORT` or `POSTGRES_PORT` in `.env`.
 
