@@ -82,6 +82,8 @@ model Survey {
   id              String       @id @default(uuid(7)) @db.Uuid
   title           String
   status          SurveyStatus @default(draft)
+  /// Set while an admin has paused the survey: new entrants are sent to the over-quota link.
+  pausedAt        DateTime?
   targetCompletes Int
   language        String       @default("en")
   /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.

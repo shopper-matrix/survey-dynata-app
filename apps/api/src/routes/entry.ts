@@ -52,7 +52,7 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
     const survey = params.success
       ? await db.survey.findUnique({
           where: { id: params.data.surveyId },
-          select: { id: true, status: true },
+          select: { id: true, status: true, pausedAt: true },
         })
       : null;
     if (!survey) return sendPage(reply, 404, pages.surveyNotFound);
@@ -86,6 +86,9 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
     const key = { surveyId_panelRespondentId: { surveyId: survey.id, panelRespondentId } };
     const existing = await db.respondent.findUnique({ where: key });
     if (existing) return resume(reply, existing, verification.endLinks);
+
+    // Paused: respondents already in progress may finish (above), new ones are turned away.
+    if (survey.pausedAt) return reply.redirect(verification.endLinks.overquota);
 
     try {
       const respondent = await db.respondent.create({

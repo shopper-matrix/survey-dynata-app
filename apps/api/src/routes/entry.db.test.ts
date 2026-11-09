@@ -153,6 +153,21 @@ describe('GET /s/:surveyId', () => {
     expect(again.cookies.some((c) => c.name === SESSION_COOKIE)).toBe(false);
   });
 
+  it('turns new entrants away while paused but lets respondents in progress resume', async () => {
+    const inProgress = `P-${randomUUID()}`;
+    await enter(entryPath(live(), inProgress));
+    await db.survey.update({ where: { id: live() }, data: { pausedAt: new Date() } });
+    try {
+      const newcomer = `P-${randomUUID()}`;
+      const turnedAway = await enter(entryPath(live(), newcomer));
+      expect(turnedAway.headers.location).toContain('rst=3');
+      expect(await respondentsFor(live(), newcomer)).toHaveLength(0);
+      expect((await enter(entryPath(live(), inProgress))).headers.location).toBe('/survey');
+    } finally {
+      await db.survey.update({ where: { id: live() }, data: { pausedAt: null } });
+    }
+  });
+
   it('creates exactly one respondent for simultaneous requests', async () => {
     const psid = `P-${randomUUID()}`;
     const responses = await Promise.all(

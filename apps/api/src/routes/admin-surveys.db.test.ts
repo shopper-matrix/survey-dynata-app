@@ -225,6 +225,25 @@ describe('admin survey API', () => {
     expect((await call('owner', 'DELETE', base)).statusCode).toBe(409);
   });
 
+  it('pauses and resumes a survey, logged with the admin', async () => {
+    const id = await newSurvey();
+    const paused = await call('editor', 'POST', `/api/admin/surveys/${id}/pause`);
+    expect(paused.json<{ pausedAt: string | null }>().pausedAt).not.toBeNull();
+    const resumed = await call('editor', 'POST', `/api/admin/surveys/${id}/resume`);
+    expect(resumed.json<{ pausedAt: string | null }>().pausedAt).toBeNull();
+    expect((await call('viewer', 'POST', `/api/admin/surveys/${id}/pause`)).statusCode).toBe(403);
+
+    const log = await db.adminAuditLog.findMany({
+      where: { target: id, action: { in: ['survey_paused', 'survey_resumed'] } },
+      include: { adminUser: { select: { email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(log.map((entry) => [entry.action, entry.adminUser?.email])).toEqual([
+      ['survey_paused', `editor-crud-${run}@example.test`],
+      ['survey_resumed', `editor-crud-${run}@example.test`],
+    ]);
+  });
+
   it('audits every change', async () => {
     const id = await newSurvey();
     await call('editor', 'PATCH', `/api/admin/surveys/${id}`, { title: 'Audited' });

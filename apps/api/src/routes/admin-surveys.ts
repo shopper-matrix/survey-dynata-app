@@ -120,10 +120,16 @@ export function registerAdminSurveyRoutes(
   async function surveyDetails(surveyId: string) {
     const survey = await db.survey.findUniqueOrThrow({
       where: { id: surveyId },
-      select: { status: true, updatedAt: true, _count: { select: { respondents: true } } },
+      select: {
+        status: true,
+        pausedAt: true,
+        updatedAt: true,
+        _count: { select: { respondents: true } },
+      },
     });
     return {
       status: survey.status,
+      pausedAt: survey.pausedAt,
       updatedAt: survey.updatedAt,
       respondents: survey._count.respondents,
       definition: await db.$transaction((tx) => exportDefinition(tx, surveyId)),
@@ -135,7 +141,14 @@ export function registerAdminSurveyRoutes(
   app.get('/api/admin/surveys', viewer, async () => {
     const surveys = await db.survey.findMany({
       orderBy: { updatedAt: 'desc' },
-      select: { id: true, title: true, status: true, targetCompletes: true, updatedAt: true },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        pausedAt: true,
+        targetCompletes: true,
+        updatedAt: true,
+      },
     });
     const completes = await db.respondent.groupBy({
       by: ['surveyId'],
@@ -197,6 +210,22 @@ export function registerAdminSurveyRoutes(
     await audit(db, adminOf(request).id, 'survey_deleted', params.data.id);
     return { ok: true };
   });
+
+  // ---- Pause switch (DSA-309) ---------------------------------------------------------------
+
+  for (const [path, paused] of [
+    ['pause', true],
+    ['resume', false],
+  ] as const) {
+    app.post(`/api/admin/surveys/:id/${path}`, editor, async (request, reply) =>
+      mutate(request, reply, paused ? 'survey_paused' : 'survey_resumed', async (tx, surveyId) => {
+        await tx.survey.update({
+          where: { id: surveyId },
+          data: { pausedAt: paused ? new Date() : null },
+        });
+      }),
+    );
+  }
 
   // ---- Blocks ------------------------------------------------------------------------------
 
