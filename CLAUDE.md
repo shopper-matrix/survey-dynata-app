@@ -164,6 +164,10 @@ pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (start
   only; `E2E_BASE_URL` targets staging once it exists (DSA-801).
 - Waiting for product-owner input: 703 (needs staging), 801–804 (hosting, region, domain,
   monitoring accounts), 805 (licence, publication approval). Parked: 303, 304, 704.
+- DSA-801 started (product owner, Nov 2026): production runs from `main` on one Hostinger VPS
+  (Ubuntu 24.04 + Docker) at https://serafima.cloud, mock Dynata mode, via `deploy/`
+  (`compose.prod.yaml`: Postgres, API, Caddy for HTTPS). Staging, managed database/region,
+  monitoring, backups and a deploy pipeline are still open (801–804); see `deploy/README.md`.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
