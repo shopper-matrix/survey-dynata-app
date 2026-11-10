@@ -77,6 +77,11 @@ docker compose up --build -V
   running. If the `DOCKER_HOST` environment variable is set on your machine, it overrides Docker
   Desktop. Unset it, or run `docker --context desktop-linux compose up`.
 
+## Production
+
+Production runs on one server with Docker (PostgreSQL, API, Caddy for HTTPS). Setup and
+updates: [deploy/README.md](deploy/README.md).
+
 ## Working outside Docker
 
 Requires Node.js 20+ and pnpm.

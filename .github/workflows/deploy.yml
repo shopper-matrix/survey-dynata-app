@@ -1,0 +1,68 @@
+name: Deploy
+
+# Production deploy (DSA-804): after CI passes on a push to main (i.e. a merged PR), back up the
+# database, deploy the new version and check /health; an unhealthy version is rolled back.
+# Can also be started by hand (Actions > Deploy > Run workflow) to redeploy main.
+# Needs the "production" environment secrets DEPLOY_HOST, DEPLOY_SSH_KEY and DEPLOY_KNOWN_HOSTS
+# (docs/runbook.md).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time; a newer one waits instead of interrupting a running deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Back up and deploy to production
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Package release
+        run: git archive --format=tar.gz -o release.tar.gz HEAD
+
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload and unpack
+        run: |
+          RELEASE="$(date -u +%Y%m%dT%H%M%SZ)-${SHA::7}"
+          echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+          scp -i ~/.ssh/deploy_key release.tar.gz "root@$DEPLOY_HOST:/tmp/release-$RELEASE.tar.gz"
+          ssh -i ~/.ssh/deploy_key "root@$DEPLOY_HOST" \
+            "set -e; mkdir -p /opt/survey/releases/$RELEASE; tar -xzf /tmp/release-$RELEASE.tar.gz -C /opt/survey/releases/$RELEASE; rm /tmp/release-$RELEASE.tar.gz"
+
+      - name: Back up database, deploy, health check
+        run: ssh -i ~/.ssh/deploy_key "root@$DEPLOY_HOST" "bash /opt/survey/releases/$RELEASE/deploy/deploy.sh /opt/survey/releases/$RELEASE"
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
