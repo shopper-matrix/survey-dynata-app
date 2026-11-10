@@ -13,15 +13,18 @@
     "format:check": "prettier . --check",
     "typecheck": "pnpm db:generate && pnpm -r typecheck",
     "test": "pnpm db:generate && pnpm -r test",
-    "build": "pnpm -r build",
+    "build": "pnpm db:generate && pnpm -r build",
     "db:generate": "pnpm --filter @survey-dynata/api db:generate",
     "db:migrate": "pnpm --filter @survey-dynata/api db:migrate",
     "db:deploy": "pnpm --filter @survey-dynata/api db:deploy",
-    "db:seed": "pnpm --filter @survey-dynata/api db:seed"
+    "db:seed": "pnpm --filter @survey-dynata/api db:seed",
+    "survey:import": "pnpm --filter @survey-dynata/api survey:import",
+    "admin:create": "pnpm --filter @survey-dynata/api admin:create"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",

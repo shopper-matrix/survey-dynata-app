@@ -2,7 +2,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { createDb } from '../db.js';
 import { loadEnv } from '../env.js';
-import { DEMO_SURVEY_ID } from './demo-survey.js';
+import { DEMO_DYNATA_PROJECT_ID, DEMO_SURVEY_ID } from './demo-survey.js';
 import { seedDemo } from './seed-demo.js';
 
 try {
@@ -35,5 +35,10 @@ describe('seedDemo', () => {
       ['Men', 12],
       ['Women', 13],
     ]);
+    expect(
+      await db.dynataSurveySettings.findUnique({ where: { surveyId: DEMO_SURVEY_ID } }),
+    ).toMatchObject({
+      projectId: DEMO_DYNATA_PROJECT_ID,
+    });
   });
 });

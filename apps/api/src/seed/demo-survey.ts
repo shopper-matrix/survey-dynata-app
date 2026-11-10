@@ -1,10 +1,17 @@
-import type { Condition, QuestionConfigInput } from '@survey-dynata/shared';
+import type {
+  AttentionAnswer,
+  Condition,
+  QuestionConfigInput,
+  SurveyDefinitionInput,
+} from '@survey-dynata/shared';
 import type { QuestionType } from '@survey-dynata/shared/db';
 
 // Demo survey for contributors and local development: one question of every type, two
 // screeners, two quota cells. Generic content only, never client material.
 
 export const DEMO_SURVEY_ID = '019a0000-0000-7000-8000-000000000001';
+/** Fake Dynata project ID for mock mode (the `project` parameter in entry links). */
+export const DEMO_DYNATA_PROJECT_ID = 'DEMO-10001';
 
 export interface DemoQuestion<T extends QuestionType = QuestionType> {
   code: string;
@@ -13,6 +20,7 @@ export interface DemoQuestion<T extends QuestionType = QuestionType> {
   config: QuestionConfigInput<T>;
   isScreener?: boolean;
   isAttentionCheck?: boolean;
+  attentionAnswer?: AttentionAnswer;
   /** Ends the survey as screen-out when it matches. */
   screenOut?: Condition;
 }
@@ -30,13 +38,19 @@ function q<T extends QuestionType>(
   type: T,
   text: string,
   config: QuestionConfigInput<T>,
-  extra: Pick<DemoQuestion, 'isScreener' | 'isAttentionCheck' | 'screenOut'> = {},
+  extra: Pick<
+    DemoQuestion,
+    'isScreener' | 'isAttentionCheck' | 'attentionAnswer' | 'screenOut'
+  > = {},
 ): DemoQuestion {
   return { code, type, text, config, ...extra };
 }
 
 const options = (...labels: [id: string, label: string][]) =>
   labels.map(([id, label]) => ({ id, label }));
+
+/** The attention-check row in D1 and the answer it expects. */
+export const attentionCheck = { question: 'D1', row: 'attention', expected: '4' } as const;
 
 const agreement = options(
   ['1', 'Strongly disagree'],
@@ -270,6 +284,7 @@ export const demoBlocks: DemoBlock[] = [
       q('C9', 'timed_exposure', 'What kind of product was that?', {
         stimuli: packs,
         exposureMs: 3000,
+        assignment: 'pack',
         options: options(
           ['bar', 'A bar'],
           ['cereal', 'Muesli or cereal'],
@@ -296,7 +311,10 @@ export const demoBlocks: DemoBlock[] = [
           ),
           columns: agreement,
         },
-        { isAttentionCheck: true },
+        {
+          isAttentionCheck: true,
+          attentionAnswer: { row: attentionCheck.row, expected: [attentionCheck.expected] },
+        },
       ),
       q('D2', 'open_text', 'What would make snack bars better for you?', {
         minLength: 0,
@@ -308,9 +326,6 @@ export const demoBlocks: DemoBlock[] = [
     ],
   },
 ];
-
-/** The attention-check row in D1 and the answer it expects. */
-export const attentionCheck = { question: 'D1', row: 'attention', expected: '4' } as const;
 
 export const demoQuotaCells = [
   {
@@ -324,3 +339,17 @@ export const demoQuotaCells = [
     target: 12,
   },
 ];
+
+/** The demo survey in the import format (`pnpm survey:import` uses the same writer). */
+export const demoDefinition: SurveyDefinitionInput = {
+  survey: {
+    id: DEMO_SURVEY_ID,
+    title: demoSurvey.title,
+    language: demoSurvey.language,
+    targetCompletes: demoSurvey.targetCompletes,
+  },
+  blocks: demoBlocks,
+  // Split cell for C9: each respondent sees one of the two packs.
+  assignments: [{ name: 'pack', values: packs.map((pack) => pack.id) }],
+  quotas: demoQuotaCells,
+};

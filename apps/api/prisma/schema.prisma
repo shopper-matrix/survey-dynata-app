@@ -82,15 +82,47 @@ model Survey {
   id              String       @id @default(uuid(7)) @db.Uuid
   title           String
   status          SurveyStatus @default(draft)
+  /// Set while an admin has paused the survey: new entrants are sent to the over-quota link.
+  pausedAt        DateTime?
+  /// Welcome screen: short introduction, estimated length, privacy notice and policy link.
+  intro            String?
+  estimatedMinutes Int?
+  privacyNotice    String?
+  privacyPolicyUrl String?
+  /// Per language: { title, intro, privacyNotice }. A language is offered when it is here.
+  translations     Json         @default("{}")
   targetCompletes Int
   language        String       @default("en")
+  /// Random test-group assignments (split cells), see packages/shared/src/survey-definition.ts.
+  assignments     Json         @default("[]")
+  /// Quality checks at finish (speeders, straightlining, attention checks), see
+  /// packages/shared/src/quality-settings.ts. Missing keys take the defaults.
+  qualitySettings Json         @default("{}")
+  /// Respondents and their answers are deleted this many days after they finished (or started,
+  /// if they never finished). Null: kept until a retention period is set.
+  retentionDays   Int?
+  /// Programming notes for what the engine cannot express yet.
+  notes           String[]     @default([])
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  blocks      Block[]
-  questions   Question[]
-  quotaCells  QuotaCell[]
-  respondents Respondent[]
+  blocks         Block[]
+  questions      Question[]
+  quotaCells     QuotaCell[]
+  respondents    Respondent[]
+  dynataSettings DynataSurveySettings?
+}
+
+/// Dynata project linked to a survey (sample-provider specific, used by apps/api/src/dynata).
+/// Key ID and secret are per client and live in the environment, never in the database.
+model DynataSurveySettings {
+  surveyId  String   @id @db.Uuid
+  /// Value of the `project` parameter Dynata sends in the entry link.
+  projectId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
 }
 
 /// Group of questions shown together, e.g. "A Screening". Filters and rotation apply per block.
@@ -123,7 +155,13 @@ model Question {
   config           Json         @default("{}")
   isScreener       Boolean      @default(false)
   isAttentionCheck Boolean      @default(false)
+  /// Expected answer of an attention check: { row?, expected: optionIds } (quality-settings.ts).
+  attentionAnswer  Json?
   displayLogic     Json?
+  /// Programming notes for what the engine cannot express yet.
+  notes            String[]     @default([])
+  /// Per language: { text, labels: { <option/row/item id or field>: label } }.
+  translations     Json         @default("{}")
 
   survey         Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   block          Block           @relation(fields: [blockId], references: [id], onDelete: Cascade)
@@ -166,11 +204,17 @@ model Respondent {
   panelRespondentId String
   status            RespondentStatus @default(started)
   isTest            Boolean          @default(false)
+  /// When the respondent accepted the welcome / privacy screen (passed the bot check).
+  consentedAt       DateTime?
+  /// Language chosen at entry (link parameter or browser), one the survey offers.
+  language          String?
   startedAt         DateTime         @default(now())
   endedAt           DateTime?
   deviceType        DeviceType?
   /// Salted hash only, never the raw IP.
   ipHash            String?
+  /// Salted hash of the browser signature (user agent, languages, client hints).
+  deviceHash        String?
   qualityFlags      Json             @default("[]")
   /// Random test-group assignments, e.g. split cells and claim variants.
   assignments       Json             @default("{}")
@@ -182,6 +226,7 @@ model Respondent {
   // The same person can never be counted twice in one survey.
   @@unique([surveyId, panelRespondentId])
   @@index([surveyId, status])
+  @@index([surveyId, ipHash])
 }
 
 model Answer {
@@ -200,6 +245,16 @@ model Answer {
 }
 
 /// Every end link sent to the sample provider; used to reconcile counts with the invoice.
+/// One run of the retention job. Counts only: no respondent IDs or other personal data.
+model RetentionRun {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  ranAt              DateTime @default(now())
+  respondentsDeleted Int
+  answersDeleted     Int
+  /// Respondents deleted per survey ID, e.g. { "<surveyId>": 12 }.
+  perSurvey          Json     @default("{}")
+}
+
 model RedirectLog {
   id           String   @id @default(uuid(7)) @db.Uuid
   respondentId String   @db.Uuid
@@ -219,4 +274,35 @@ model AdminUser {
   role         AdminRole @default(viewer)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  sessions  AdminSession[]
+  auditLogs AdminAuditLog[]
+}
+
+/// Admin login session. Only a SHA-256 hash of the cookie token is stored.
+model AdminSession {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  tokenHash   String   @unique
+  adminUserId String   @db.Uuid
+  createdAt   DateTime @default(now())
+  /// Updated on every request; the session ends after a period of inactivity.
+  lastSeenAt  DateTime @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+}
+
+/// Every admin action that changes data or access (login, survey edits, exports, pause…).
+model AdminAuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  adminUserId String?  @db.Uuid
+  action      String
+  target      String?
+  details     Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }

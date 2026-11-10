@@ -11,3 +11,10 @@ coverage/
 # Confidential client questionnaire (reference only, never commit)
 docs/Fragebogen.md
 packages/shared/src/generated/
+
+# Private survey definitions (client content, never commit)
+private/
+
+# Playwright
+playwright-report/
+test-results/

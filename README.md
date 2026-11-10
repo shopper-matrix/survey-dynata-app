@@ -22,12 +22,13 @@ The first run builds the images and takes a few minutes. Later runs start in sec
 
 ### Local URLs
 
-| Service        | URL                                                                                      |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| Web app        | http://localhost:5173 (UI prototype: index of every screen, fake data)                   |
-| API            | http://localhost:3000 (health check: http://localhost:3000/health)                       |
-| API (from web) | http://localhost:5173/api/... is proxied to the API, so the frontend can call `/api/...` |
-| PostgreSQL     | `localhost:5432`, user/password/database from `POSTGRES_*` in your `.env`                |
+| Service        | URL                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| Web app        | http://localhost:5173/admin (admin area; respondents arrive via the entry link below)           |
+| API            | http://localhost:3000 (health check: http://localhost:3000/health)                              |
+| API (from web) | http://localhost:5173/api/... is proxied to the API (e.g. `/api/session/questions`)             |
+| Survey entry   | http://localhost:5173/s/<surveyId>?project=…&psid=…&_k=…&_s=… (signed link, proxied to the API) |
+| PostgreSQL     | `localhost:5432`, user/password/database from `POSTGRES_*` in your `.env`                       |
 
 If a port is already taken on your machine, change `WEB_PORT`, `API_PORT` or `POSTGRES_PORT` in `.env`.
 
@@ -92,6 +93,13 @@ pnpm format      # Prettier
 `lint`, `typecheck` and `test` regenerate the Prisma client first, so a fresh clone works without
 extra steps.
 
+End-to-end tests (Playwright) walk every respondent path in a browser, on phone and desktop:
+
+```sh
+pnpm --filter @survey-dynata/e2e exec playwright install chromium   # once
+pnpm --filter @survey-dynata/e2e e2e   # needs the database; reuses or starts API and web
+```
+
 ## Database
 
 The schema is [apps/api/prisma/schema.prisma](apps/api/prisma/schema.prisma) (Prisma). The
@@ -113,6 +121,17 @@ pnpm --filter @survey-dynata/api test:db   # database tests (needs a running dat
 Study": one question of every type, two screeners, two quota cells and 50 fake respondents
 (`TEST-0001` … `TEST-0050`) across all outcomes. Running it again replaces the demo survey; it
 refuses to run with `NODE_ENV=production`. No real personal data is involved.
+
+### Importing a questionnaire
+
+```sh
+pnpm survey:import path/to/survey.json
+```
+
+Validates a survey definition (format: [packages/shared/src/survey-definition.ts](packages/shared/src/survey-definition.ts))
+and writes it as a draft. Re-importing replaces the survey, unless it already has respondents.
+Client questionnaires are confidential: keep their definition files in the git-ignored `private/`
+folder, never elsewhere in the repo.
 
 `docker compose up` applies pending migrations automatically when the API starts. Commands run on
 your machine use `DATABASE_URL` from `.env` (pointing at `localhost:5432`).

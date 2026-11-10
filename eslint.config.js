@@ -11,6 +11,8 @@ export default tseslint.config(
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
       '**/node_modules/**',
       'packages/shared/src/generated/**',
     ],
@@ -25,6 +27,18 @@ export default tseslint.config(
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
+    },
+  },
+  {
+    // DSA-503: only Prisma's tagged-template raw queries, which always bind parameters.
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...['$queryRawUnsafe', '$executeRawUnsafe'].map((property) => ({
+          property,
+          message: 'Use $queryRaw / $executeRaw tagged templates (parameterised).',
+        })),
+      ],
     },
   },
   {

@@ -1,27 +1,42 @@
 import { describe, expect, it } from 'vitest';
+import { DYNATA_API_URL } from './dynata/config.js';
 import { EnvValidationError, loadEnv } from './env.js';
 
-const DATABASE_URL = 'postgres://user:pass@localhost:5432/db';
+const required = {
+  DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+  APP_BASE_URL: 'http://localhost:3000',
+  SESSION_SECRET: 'x'.repeat(32),
+};
 
 describe('loadEnv', () => {
   it('applies defaults when only required variables are set', () => {
-    expect(loadEnv({ DATABASE_URL })).toEqual({
+    expect(loadEnv(required)).toEqual({
+      ...required,
       NODE_ENV: 'development',
       PORT: 3000,
-      DATABASE_URL,
+      ADMIN_SESSION_IDLE_MINUTES: 30,
+      TRUST_PROXY: false,
+      DYNATA_MODE: 'mock',
+      DYNATA_API_URL,
     });
   });
 
+  it('reads TRUST_PROXY as a boolean', () => {
+    expect(loadEnv({ ...required, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
+  });
+
   it('coerces PORT to a number', () => {
-    expect(loadEnv({ DATABASE_URL, PORT: '8080' }).PORT).toBe(8080);
+    expect(loadEnv({ ...required, PORT: '8080' }).PORT).toBe(8080);
   });
 
   it('rejects a missing DATABASE_URL', () => {
-    expect(() => loadEnv({})).toThrow(/DATABASE_URL: is required/);
+    expect(() => loadEnv({ APP_BASE_URL: required.APP_BASE_URL })).toThrow(
+      /DATABASE_URL: is required/,
+    );
   });
 
   it('treats an empty value as missing', () => {
-    expect(() => loadEnv({ DATABASE_URL: '' })).toThrow(/DATABASE_URL: is required/);
+    expect(() => loadEnv({ ...required, DATABASE_URL: '' })).toThrow(/DATABASE_URL: is required/);
   });
 
   it('reports every problem at once', () => {
@@ -31,10 +46,26 @@ describe('loadEnv', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(EnvValidationError);
       const { problems } = error as EnvValidationError;
-      expect(problems).toHaveLength(3);
-      expect(problems.join('\n')).toMatch(/DATABASE_URL/);
-      expect(problems.join('\n')).toMatch(/PORT/);
-      expect(problems.join('\n')).toMatch(/NODE_ENV/);
+      expect(problems).toHaveLength(5);
+      for (const name of ['DATABASE_URL', 'PORT', 'NODE_ENV', 'APP_BASE_URL', 'SESSION_SECRET']) {
+        expect(problems.join('\n')).toContain(name);
+      }
     }
+  });
+
+  it('rejects a short SESSION_SECRET', () => {
+    expect(() => loadEnv({ ...required, SESSION_SECRET: 'short' })).toThrow(
+      /SESSION_SECRET: must be at least 32 characters/,
+    );
+  });
+
+  it('requires Dynata credentials in live mode only', () => {
+    expect(() => loadEnv({ ...required, DYNATA_MODE: 'live' })).toThrow(
+      /DYNATA_KEY_ID: is required when DYNATA_MODE=live[\s\S]*DYNATA_SECRET/,
+    );
+    expect(
+      loadEnv({ ...required, DYNATA_MODE: 'live', DYNATA_KEY_ID: '1', DYNATA_SECRET: 's' })
+        .DYNATA_MODE,
+    ).toBe('live');
   });
 });

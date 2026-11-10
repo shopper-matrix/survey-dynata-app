@@ -1,0 +1,217 @@
+import { z } from 'zod';
+import { QuestionType, QuotaKind } from './generated/prisma/enums.js';
+import {
+  conditionSchema,
+  referencedAssignments,
+  referencedQuestions,
+  type Condition,
+} from './conditions.js';
+import { questionConfigSchemas } from './questions/config.js';
+import {
+  attentionAnswerSchema,
+  qualitySettingsSchema,
+  type AttentionAnswer,
+} from './quality-settings.js';
+import { questionTranslationsSchema, surveyTranslationsSchema } from './translations.js';
+
+// File format for a whole survey (`pnpm survey:import <file>`): blocks, questions, screening,
+// quotas and random test-group assignments. Validated completely before anything is written.
+
+const code = z.string().min(1).max(40);
+
+/** A random assignment, e.g. a split cell: each respondent gets `pick` of the `values`. */
+export const assignmentSchema = z
+  .object({
+    name: code,
+    values: z.array(z.string().min(1)).min(2),
+    /** How many values each respondent gets (incomplete-block designs pick more than one). */
+    pick: z.int().min(1).default(1),
+    /** Question codes to balance the assignment within (stratified randomisation). */
+    stratifyBy: z.array(code).default([]),
+  })
+  .refine(({ values, pick }) => pick < values.length, 'pick must be below the number of values');
+
+export const questionDefinitionSchema = z
+  .object({
+    code,
+    type: z.enum(QuestionType),
+    text: z.string().min(1),
+    config: z.unknown(),
+    isScreener: z.boolean().default(false),
+    isAttentionCheck: z.boolean().default(false),
+    /** Required for attention checks: the answer an attentive respondent gives. */
+    attentionAnswer: attentionAnswerSchema.optional(),
+    /** Show the question only when this matches. */
+    displayLogic: conditionSchema.optional(),
+    /** End the survey as screen-out when this matches. */
+    screenOut: conditionSchema.optional(),
+    /** Programming notes for what the engine can't express yet. */
+    notes: z.array(z.string().min(1)).default([]),
+    translations: questionTranslationsSchema.default({}),
+  })
+  .transform((question, ctx) => {
+    const parsed = questionConfigSchemas[question.type].safeParse(question.config);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        ctx.addIssue({ ...issue, path: ['config', ...issue.path] });
+      }
+      return z.NEVER;
+    }
+    return { ...question, config: parsed.data };
+  });
+
+export const blockDefinitionSchema = z.object({
+  code,
+  title: z.string().min(1),
+  rotationGroup: z.string().min(1).optional(),
+  displayLogic: conditionSchema.optional(),
+  /** May be empty while a survey is being built. */
+  questions: z.array(questionDefinitionSchema),
+});
+
+/** Welcome screen texts (DSA-402); all optional. */
+export const welcomeShape = {
+  intro: z.string().min(1).max(2000).optional(),
+  estimatedMinutes: z.int().min(1).max(180).optional(),
+  privacyNotice: z.string().min(1).max(4000).optional(),
+  privacyPolicyUrl: z.url().optional(),
+};
+
+/** Days after a respondent finished until their data is deleted (DSA-504); 30 days to 10 years. */
+export const retentionDaysSchema = z.int().min(30).max(3650);
+
+export const quotaDefinitionSchema = z.object({
+  name: z.string().min(1),
+  conditions: conditionSchema,
+  target: z.int().min(1),
+  kind: z.enum(QuotaKind).default('cap'),
+});
+
+export const surveyDefinitionSchema = z
+  .object({
+    survey: z.object({
+      /** Fixed ID so a re-import replaces the same survey. */
+      id: z.uuid(),
+      title: z.string().min(1),
+      language: z.string().min(2).max(10),
+      targetCompletes: z.int().min(1),
+      notes: z.array(z.string().min(1)).default([]),
+      ...welcomeShape,
+      translations: surveyTranslationsSchema.default({}),
+      quality: qualitySettingsSchema.prefault({}),
+      retentionDays: retentionDaysSchema.optional(),
+    }),
+    assignments: z.array(assignmentSchema).default([]),
+    blocks: z.array(blockDefinitionSchema).min(1),
+    quotas: z.array(quotaDefinitionSchema).default([]),
+  })
+  .superRefine((definition, ctx) => {
+    const questions = definition.blocks.flatMap((block) => block.questions);
+    const codes = new Set<string>();
+    for (const question of questions) {
+      if (codes.has(question.code)) {
+        ctx.addIssue({ code: 'custom', message: `Duplicate question code ${question.code}` });
+      }
+      codes.add(question.code);
+    }
+    const blockCodes = definition.blocks.map((block) => block.code);
+    if (new Set(blockCodes).size !== blockCodes.length) {
+      ctx.addIssue({ code: 'custom', message: 'Block codes must be unique' });
+    }
+    const assignments = new Set(definition.assignments.map((assignment) => assignment.name));
+
+    const check = (where: string, condition: Condition | undefined) => {
+      if (!condition) return;
+      for (const ref of referencedQuestions(condition)) {
+        if (!codes.has(ref))
+          ctx.addIssue({ code: 'custom', message: `${where}: unknown question ${ref}` });
+      }
+      for (const ref of referencedAssignments(condition)) {
+        if (!assignments.has(ref)) {
+          ctx.addIssue({ code: 'custom', message: `${where}: unknown assignment ${ref}` });
+        }
+      }
+    };
+
+    definition.blocks.forEach((block, blockIndex) => {
+      block.questions.forEach((question, questionIndex) => {
+        const choices = (question.config as { options?: unknown[] }).options;
+        const isChoice = question.type === 'single_choice' || question.type === 'multi_choice';
+        if (isChoice && (choices?.length ?? 0) < 2) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['blocks', blockIndex, 'questions', questionIndex, 'config', 'options'],
+            message: `${question.code}: a choice question needs at least two options`,
+          });
+        }
+      });
+    });
+
+    for (const block of definition.blocks) {
+      check(`Block ${block.code}`, block.displayLogic);
+      for (const question of block.questions) {
+        check(question.code, question.displayLogic);
+        check(question.code, question.screenOut);
+        const attentionIssue = attentionAnswerIssue(question);
+        if (attentionIssue) {
+          ctx.addIssue({ code: 'custom', message: `${question.code}: ${attentionIssue}` });
+        }
+        const config = question.config as {
+          pipeFrom?: { question: string };
+          assignment?: string;
+        };
+        if (config.pipeFrom && !codes.has(config.pipeFrom.question)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${question.code}: pipes from unknown question ${config.pipeFrom.question}`,
+          });
+        }
+        if (config.assignment && !assignments.has(config.assignment)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `${question.code}: unknown assignment ${config.assignment}`,
+          });
+        }
+      }
+    }
+    for (const quota of definition.quotas) check(`Quota ${quota.name}`, quota.conditions);
+    for (const assignment of definition.assignments) {
+      for (const ref of assignment.stratifyBy) {
+        if (!codes.has(ref)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `Assignment ${assignment.name}: unknown question ${ref}`,
+          });
+        }
+      }
+    }
+  });
+
+export type SurveyDefinition = z.output<typeof surveyDefinitionSchema>;
+export type SurveyDefinitionInput = z.input<typeof surveyDefinitionSchema>;
+
+/** Why an attention check's expected answer doesn't fit the question, or null if it does. */
+function attentionAnswerIssue(question: {
+  type: QuestionType;
+  config: unknown;
+  isAttentionCheck: boolean;
+  attentionAnswer?: AttentionAnswer | undefined;
+}): string | null {
+  const { attentionAnswer: answer } = question;
+  if (!question.isAttentionCheck) return answer ? 'attentionAnswer needs isAttentionCheck' : null;
+  if (!answer) return 'an attention check needs an attentionAnswer';
+  const ids = (list: unknown) =>
+    new Set(Array.isArray(list) ? list.map((item: { id: string }) => item.id) : []);
+  const config = question.config as { rows?: unknown; columns?: unknown; options?: unknown };
+  const isGrid = question.type === 'grid_single' || question.type === 'grid_multi';
+  const isChoice = question.type === 'single_choice' || question.type === 'multi_choice';
+  if (!isGrid && !isChoice) return 'attention checks must be choice or grid questions';
+  if (isGrid && !(answer.row && ids(config.rows).has(answer.row))) {
+    return 'attentionAnswer.row must be one of the grid rows';
+  }
+  if (isChoice && answer.row) return 'attentionAnswer.row is only for grids';
+  const valid = ids(isGrid ? config.columns : config.options);
+  return answer.expected.every((id) => valid.has(id))
+    ? null
+    : 'attentionAnswer.expected must list existing options';
+}

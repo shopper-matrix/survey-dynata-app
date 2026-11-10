@@ -1,7 +1,11 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { buildApp } from './app.js';
+import { createTurnstile } from './bot-check/turnstile.js';
 import { createDb } from './db.js';
+import { createDynataClient } from './dynata/client.js';
+import { dynataConfig } from './dynata/config.js';
+import { createDynataProvider } from './dynata/provider.js';
 import { EnvValidationError, loadEnv, type Env } from './env.js';
-import { getHealth } from './health.js';
+import { scheduleRetention } from './retention/schedule.js';
 
 let env: Env;
 try {
@@ -15,38 +19,29 @@ try {
 }
 
 const db = createDb(env.DATABASE_URL);
-
-function sendJson(res: ServerResponse, statusCode: number, body: unknown): void {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(body));
-}
-
-async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.method === 'GET' && req.url === '/health') {
-    const health = await getHealth(async () => {
-      await db.$queryRaw`SELECT 1`;
-    });
-    sendJson(res, health.status === 'ok' ? 200 : 503, health);
-    return;
-  }
-  sendJson(res, 404, { error: 'Not found' });
-}
-
-const server = createServer((req, res) => {
-  handle(req, res).catch((error: unknown) => {
-    console.error(error);
-    sendJson(res, 500, { error: 'Internal server error' });
-  });
+const dynata = dynataConfig(env);
+const provider = createDynataProvider({
+  client: createDynataClient(dynata, { appBaseUrl: env.APP_BASE_URL }),
+  config: dynata,
+  appBaseUrl: env.APP_BASE_URL,
 });
-
-server.listen(env.PORT, () => {
-  console.log(`API listening on http://localhost:${String(env.PORT)} (${env.NODE_ENV})`);
+const botCheck = createTurnstile({
+  siteKey: env.TURNSTILE_SITE_KEY,
+  secretKey: env.TURNSTILE_SECRET_KEY,
 });
+const app = await buildApp({ db, env, provider, botCheck, logger: true });
+if (!botCheck.siteKey)
+  app.log.warn('Turnstile keys not set: bot check on the welcome screen is off');
 
-function shutdown(): void {
-  server.close(() => {
-    void db.$disconnect().finally(() => process.exit(0));
-  });
+await app.listen({ host: '0.0.0.0', port: env.PORT });
+app.log.info(`Environment ${env.NODE_ENV}, Dynata ${dynata.mode} mode`);
+const stopRetention = scheduleRetention(db, app.log);
+
+async function shutdown(): Promise<void> {
+  stopRetention();
+  await app.close();
+  await db.$disconnect();
+  process.exit(0);
 }
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => void shutdown());
+process.on('SIGINT', () => void shutdown());

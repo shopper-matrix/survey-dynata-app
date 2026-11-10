@@ -17,7 +17,7 @@ jobs:
   ci:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     # Throwaway database for migrations and DB tests; exists only for this job, so the
     # credentials below are not secrets.
@@ -38,6 +38,8 @@ jobs:
 
     env:
       DATABASE_URL: postgres://ci:ci@localhost:5432/survey_dynata_ci
+      APP_BASE_URL: http://localhost:5173
+      SESSION_SECRET: ci-only-session-secret-not-used-anywhere-else
 
     steps:
       - uses: actions/checkout@v7
@@ -51,6 +53,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      # Fails on known high or critical vulnerabilities in any dependency.
+      - run: pnpm audit --audit-level high
       - run: pnpm format:check
       - run: pnpm --filter @survey-dynata/api db:validate
       - run: pnpm lint
@@ -58,6 +62,13 @@ jobs:
       - run: pnpm test
       - name: Apply migrations (as in production)
         run: pnpm db:deploy
-      - name: Database tests
-        run: pnpm --filter @survey-dynata/api test:db
+      # All API tests incl. database tests; fails below 90% coverage of dynata/, quotas/, quality/.
+      - name: Database tests and core coverage
+        run: pnpm --filter @survey-dynata/api test:coverage
       - run: pnpm build
+      # Every respondent path in a real browser, phone and desktop (DSA-702). Playwright
+      # starts API and web dev servers against the CI database.
+      - name: Install Playwright browser
+        run: pnpm --filter @survey-dynata/e2e exec playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: pnpm --filter @survey-dynata/e2e e2e

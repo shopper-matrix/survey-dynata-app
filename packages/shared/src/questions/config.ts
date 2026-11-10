@@ -26,12 +26,26 @@ const uniqueIds = (items: { id: string }[]) =>
 const options = z.array(optionSchema).min(2).refine(uniqueIds, 'Option ids must be unique');
 const stimuli = z.array(stimulusSchema).min(1).refine(uniqueIds, 'Stimulus ids must be unique');
 
-const choice = z.object({ options, randomize: z.boolean().default(false) });
+/**
+ * Piping: show only the options (or grid rows) whose ids the respondent chose in an earlier
+ * question (for a grid source: rows with at least one non-exclusive answer). Exclusive options
+ * ("none of these") are always shown.
+ */
+export const pipeSchema = z.object({ question: z.string().min(1) });
+
+// At least one option: piping can leave a single one on screen. Authoring requires two
+// (checked in survey-definition.ts).
+const choice = z.object({
+  options: z.array(optionSchema).min(1).refine(uniqueIds, 'Option ids must be unique'),
+  randomize: z.boolean().default(false),
+  pipeFrom: pipeSchema.optional(),
+});
 
 const grid = z.object({
   rows: z.array(optionSchema).min(1).refine(uniqueIds, 'Row ids must be unique'),
   columns: options,
   randomizeRows: z.boolean().default(false),
+  pipeFrom: pipeSchema.optional(),
 });
 
 const scaleEnds = { lowLabel: text, highLabel: text };
@@ -157,12 +171,14 @@ export const questionConfigSchemas = {
 
   /**
    * Show one stimulus for `exposureMs`, then ask a single-choice question and record the
-   * response time. Several stimuli = split cells; the respondent's assignment picks one.
+   * response time. Several stimuli = split cells: `assignment` names the test group whose
+   * value is the stimulus id to show (without it, the first stimulus is shown).
    */
   timed_exposure: z.object({
     stimuli,
     exposureMs: z.int().min(500).max(30_000),
     options,
+    assignment: z.string().min(1).optional(),
   }),
 } satisfies Record<QuestionType, z.ZodType>;
 

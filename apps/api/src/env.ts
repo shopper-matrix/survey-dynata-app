@@ -1,16 +1,42 @@
 import { z } from 'zod';
+import { checkDynataEnv, dynataEnvShape } from './dynata/config.js';
 
 /**
  * Every environment variable the API reads. Documented in /.env.example.
  * Add new settings here (never read process.env elsewhere) so they are validated at startup.
+ * Provider-specific variables are defined in their module (e.g. dynata/config.ts).
  */
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number({ error: 'must be a number' }).int().min(1).max(65535).default(3000),
-  DATABASE_URL: z
-    .string({ error: 'is required' })
-    .regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres:// connection string'),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number({ error: 'must be a number' }).int().min(1).max(65535).default(3000),
+    DATABASE_URL: z
+      .string({ error: 'is required' })
+      .regex(/^postgres(ql)?:\/\/.+/, 'must be a postgres:// connection string'),
+    /** Public address of the API, used in links given to sample providers. */
+    APP_BASE_URL: z.url({ error: 'is required and must be a URL' }),
+    /** Signs the respondent session cookie. */
+    SESSION_SECRET: z
+      .string({ error: 'is required' })
+      .min(32, 'must be at least 32 characters (use a long random value)'),
+    /** Cloudflare Turnstile keys; without them the bot check is off. */
+    TURNSTILE_SITE_KEY: z.string().optional(),
+    TURNSTILE_SECRET_KEY: z.string().optional(),
+    /** Behind a reverse proxy / load balancer: take the client IP from X-Forwarded-For. */
+    TRUST_PROXY: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+    /** Admin sessions end after this many minutes without activity. */
+    ADMIN_SESSION_IDLE_MINUTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 60)
+      .default(30),
+    ...dynataEnvShape,
+  })
+  .superRefine(checkDynataEnv);
 
 export type Env = z.infer<typeof envSchema>;
 
