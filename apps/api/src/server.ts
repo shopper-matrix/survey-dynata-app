@@ -5,6 +5,7 @@ import { createDynataClient } from './dynata/client.js';
 import { dynataConfig } from './dynata/config.js';
 import { createDynataProvider } from './dynata/provider.js';
 import { EnvValidationError, loadEnv, type Env } from './env.js';
+import { scheduleRetention } from './retention/schedule.js';
 
 let env: Env;
 try {
@@ -34,8 +35,10 @@ if (!botCheck.siteKey)
 
 await app.listen({ host: '0.0.0.0', port: env.PORT });
 app.log.info(`Environment ${env.NODE_ENV}, Dynata ${dynata.mode} mode`);
+const stopRetention = scheduleRetention(db, app.log);
 
 async function shutdown(): Promise<void> {
+  stopRetention();
   await app.close();
   await db.$disconnect();
   process.exit(0);

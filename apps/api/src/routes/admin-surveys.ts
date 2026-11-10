@@ -5,6 +5,7 @@ import {
   questionDefinitionSchema,
   qualitySettingsSchema,
   quotaDefinitionSchema,
+  retentionDaysSchema,
   surveyTranslationsSchema,
   welcomeShape,
 } from '@survey-dynata/shared';
@@ -51,7 +52,12 @@ const surveyPatchSchema = z.strictObject({
   assignments: z.array(assignmentSchema).optional(),
   translations: surveyTranslationsSchema.optional(),
   quality: qualitySettingsSchema.optional(),
-  ...welcomeShape,
+  // Welcome texts and retention can be cleared again with null.
+  intro: welcomeShape.intro.unwrap().nullable().optional(),
+  estimatedMinutes: welcomeShape.estimatedMinutes.unwrap().nullable().optional(),
+  privacyNotice: welcomeShape.privacyNotice.unwrap().nullable().optional(),
+  privacyPolicyUrl: welcomeShape.privacyPolicyUrl.unwrap().nullable().optional(),
+  retentionDays: retentionDaysSchema.nullable().optional(),
 });
 
 const blockPatchSchema = blockDefinitionSchema.omit({ code: true, questions: true }).partial();

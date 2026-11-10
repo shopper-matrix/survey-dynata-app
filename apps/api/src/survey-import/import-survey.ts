@@ -49,6 +49,7 @@ export async function importSurvey(
       translations: json(definition.survey.translations),
       assignments: json(definition.assignments),
       qualitySettings: json(definition.survey.quality),
+      retentionDays: definition.survey.retentionDays ?? null,
     },
   });
 

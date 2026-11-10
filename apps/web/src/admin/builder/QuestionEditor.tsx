@@ -67,6 +67,10 @@ export function QuestionEditor(props: QuestionEditorProps) {
   const [blockCode, setBlockCode] = useState(props.blockCode);
   const [isScreener, setIsScreener] = useState(initial?.isScreener === true);
   const [isAttentionCheck, setIsAttentionCheck] = useState(initial?.isAttentionCheck === true);
+  const [attentionRow, setAttentionRow] = useState(initial?.attentionAnswer?.row ?? '');
+  const [attentionExpected, setAttentionExpected] = useState(
+    initial?.attentionAnswer?.expected.join(', ') ?? '',
+  );
   const [configText, setConfigText] = useState(pretty(initial?.config ?? TEMPLATES.single_choice));
   const [displayLogicText, setDisplayLogicText] = useState(pretty(initial?.displayLogic));
   const [screenOutText, setScreenOutText] = useState(pretty(initial?.screenOut));
@@ -76,6 +80,14 @@ export function QuestionEditor(props: QuestionEditorProps) {
   const config = parseJson(configText);
   const displayLogic = parseJson(displayLogicText);
   const screenOut = parseJson(screenOutText);
+  const expectedIds = attentionExpected
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+  const attentionAnswer =
+    isAttentionCheck && expectedIds.length > 0
+      ? { ...(attentionRow.trim() ? { row: attentionRow.trim() } : {}), expected: expectedIds }
+      : undefined;
 
   const candidate = useMemo(
     () => ({
@@ -89,6 +101,7 @@ export function QuestionEditor(props: QuestionEditorProps) {
       translations: initial?.translations ?? {},
       ...(displayLogic.value === undefined ? {} : { displayLogic: displayLogic.value }),
       ...(screenOut.value === undefined ? {} : { screenOut: screenOut.value }),
+      ...(attentionAnswer ? { attentionAnswer } : {}),
     }),
     [
       code,
@@ -99,6 +112,8 @@ export function QuestionEditor(props: QuestionEditorProps) {
       isAttentionCheck,
       displayLogic.value,
       screenOut.value,
+      attentionRow,
+      attentionExpected,
       initial,
     ],
   );
@@ -107,6 +122,7 @@ export function QuestionEditor(props: QuestionEditorProps) {
     config.error && `Config: ${config.error}`,
     displayLogic.error && `Display logic: ${displayLogic.error}`,
     screenOut.error && `Screen-out: ${screenOut.error}`,
+    isAttentionCheck && !attentionAnswer && 'Attention check: enter the expected option id(s)',
     ...(parsed.success
       ? []
       : parsed.error.issues.map((i) => `${i.path.join('.') || 'question'}: ${i.message}`)),
@@ -220,6 +236,33 @@ export function QuestionEditor(props: QuestionEditorProps) {
           </label>
         </div>
 
+        {isAttentionCheck ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="q-attention-row">Attention check row id (grids only)</Label>
+              <Input
+                id="q-attention-row"
+                value={attentionRow}
+                onChange={(e) => {
+                  setAttentionRow(e.target.value);
+                }}
+                className="h-11"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="q-attention-expected">Expected option id(s), comma-separated</Label>
+              <Input
+                id="q-attention-expected"
+                value={attentionExpected}
+                onChange={(e) => {
+                  setAttentionExpected(e.target.value);
+                }}
+                className="h-11"
+              />
+            </div>
+          </div>
+        ) : null}
+
         {LIST_KEYS.filter((key) => Array.isArray(configObject[key])).map((key) => (
           <div key={key} className="grid gap-2">
             <Label htmlFor={`q-${key}`} className="capitalize">
@@ -304,7 +347,7 @@ export function QuestionEditor(props: QuestionEditorProps) {
         <div className="flex flex-wrap gap-2">
           <Button
             className="h-11"
-            disabled={!props.canEdit || !parsed.success || saving}
+            disabled={!props.canEdit || problems.length > 0 || saving}
             onClick={() => void save()}
           >
             Save question

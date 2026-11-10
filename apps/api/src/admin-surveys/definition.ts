@@ -52,6 +52,7 @@ export async function exportDefinition(
       ...(survey.privacyPolicyUrl ? { privacyPolicyUrl: survey.privacyPolicyUrl } : {}),
       translations: survey.translations as SurveyTranslations,
       quality: survey.qualitySettings as QualitySettingsInput,
+      ...(survey.retentionDays ? { retentionDays: survey.retentionDays } : {}),
     },
     assignments: survey.assignments as SurveyDefinitionInput['assignments'],
     blocks: survey.blocks.map((block) => ({

@@ -77,6 +77,9 @@ export const welcomeShape = {
   privacyPolicyUrl: z.url().optional(),
 };
 
+/** Days after a respondent finished until their data is deleted (DSA-504); 30 days to 10 years. */
+export const retentionDaysSchema = z.int().min(30).max(3650);
+
 export const quotaDefinitionSchema = z.object({
   name: z.string().min(1),
   conditions: conditionSchema,
@@ -96,6 +99,7 @@ export const surveyDefinitionSchema = z
       ...welcomeShape,
       translations: surveyTranslationsSchema.default({}),
       quality: qualitySettingsSchema.prefault({}),
+      retentionDays: retentionDaysSchema.optional(),
     }),
     assignments: z.array(assignmentSchema).default([]),
     blocks: z.array(blockDefinitionSchema).min(1),

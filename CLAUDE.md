@@ -135,15 +135,15 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503, 504.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
   (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
   test respondents excluded; incidence = completes / (completes + screen-outs)).
 - DSA-501: quality checks run at finish before quotas (`quality/`; `chainHooks` in `app.ts`).
   Settings per survey in `Survey.qualitySettings` (`packages/shared/src/quality-settings.ts`;
-  set via import file `survey.quality` or `PATCH /api/admin/surveys/:id` `quality`; no admin
-  form yet). Attention checks need `attentionAnswer` ({ row?, expected }).
+  edited in the builder's Settings tab, or `survey.quality` in an import file). Attention checks
+  need `attentionAnswer` ({ row?, expected }), editable in the question editor.
 - DSA-502: entry stores HMAC hashes of IP and device signature (`quality/fingerprint.ts`, keyed
   with `SESSION_SECRET`) and flags `duplicate_ip` / `duplicate_device`; `TRUST_PROXY=true` behind a
   reverse proxy. Hidden honeypot field `hp` in answers → quality termination (`honeypot` flag).
@@ -151,7 +151,10 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   (`http/security.ts`); the web build gets a CSP meta tag (`apps/web/vite.config.ts`; frame-ancestors
   must come from the host, DSA-801). Entry links are rate-limited per IP. ESLint bans
   `$queryRawUnsafe`/`$executeRawUnsafe`; CI runs `pnpm audit --audit-level high`.
-  Next: DSA-504 (privacy notice and data retention).
+- DSA-504: Settings tab edits welcome texts, privacy notice and `Survey.retentionDays` (null = keep).
+  `retention/` deletes respondents (answers, redirect logs) that many days after they finished;
+  runs at API start and daily (`scheduleRetention` in `server.ts`); `RetentionRun` logs counts only.
+  Next: M6 (DSA-701 coverage).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

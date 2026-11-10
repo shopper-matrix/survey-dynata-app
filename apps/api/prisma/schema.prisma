@@ -98,6 +98,9 @@ model Survey {
   /// Quality checks at finish (speeders, straightlining, attention checks), see
   /// packages/shared/src/quality-settings.ts. Missing keys take the defaults.
   qualitySettings Json         @default("{}")
+  /// Respondents and their answers are deleted this many days after they finished (or started,
+  /// if they never finished). Null: kept until a retention period is set.
+  retentionDays   Int?
   /// Programming notes for what the engine cannot express yet.
   notes           String[]     @default([])
   createdAt       DateTime     @default(now())
@@ -242,6 +245,16 @@ model Answer {
 }
 
 /// Every end link sent to the sample provider; used to reconcile counts with the invoice.
+/// One run of the retention job. Counts only: no respondent IDs or other personal data.
+model RetentionRun {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  ranAt              DateTime @default(now())
+  respondentsDeleted Int
+  answersDeleted     Int
+  /// Respondents deleted per survey ID, e.g. { "<surveyId>": 12 }.
+  perSurvey          Json     @default("{}")
+}
+
 model RedirectLog {
   id           String   @id @default(uuid(7)) @db.Uuid
   respondentId String   @db.Uuid

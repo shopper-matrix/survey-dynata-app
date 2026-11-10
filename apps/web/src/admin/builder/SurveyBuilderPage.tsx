@@ -17,8 +17,9 @@ import { DynataSettingsPanel } from './DynataSettingsPanel';
 import { QuestionEditor } from './QuestionEditor';
 import { QuestionList } from './QuestionList';
 import { QuotaEditor } from './QuotaEditor';
+import { SettingsPanel } from './SettingsPanel';
 
-const TABS = ['Questions', 'Quotas', 'Dashboard', 'Dynata'] as const;
+const TABS = ['Questions', 'Quotas', 'Dashboard', 'Settings', 'Dynata'] as const;
 type Tab = (typeof TABS)[number];
 
 const NEXT_STATUS: Record<SurveyStatus, { status: SurveyStatus; label: string }[]> = {
@@ -181,6 +182,17 @@ export default function SurveyBuilderPage() {
       {tab === 'Dashboard' ? (
         <div role="tabpanel" aria-label="Dashboard" className="mt-6">
           <DashboardPanel surveyId={id} canEdit={canEdit} />
+        </div>
+      ) : null}
+
+      {tab === 'Settings' ? (
+        <div role="tabpanel" aria-label="Settings" className="mt-6">
+          <SettingsPanel
+            key={details.updatedAt}
+            survey={definition.survey}
+            canEdit={canEdit}
+            onSave={(patch) => apply(() => adminApi.updateSurvey(id, { ...patch }))}
+          />
         </div>
       ) : null}
 
