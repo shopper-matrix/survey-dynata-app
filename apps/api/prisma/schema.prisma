@@ -210,6 +210,8 @@ model Respondent {
   deviceType        DeviceType?
   /// Salted hash only, never the raw IP.
   ipHash            String?
+  /// Salted hash of the browser signature (user agent, languages, client hints).
+  deviceHash        String?
   qualityFlags      Json             @default("[]")
   /// Random test-group assignments, e.g. split cells and claim variants.
   assignments       Json             @default("{}")
@@ -221,6 +223,7 @@ model Respondent {
   // The same person can never be counted twice in one survey.
   @@unique([surveyId, panelRespondentId])
   @@index([surveyId, status])
+  @@index([surveyId, ipHash])
 }
 
 model Answer {

@@ -126,8 +126,8 @@ export function SurveyPage() {
         busy={busy}
         error={error}
         t={t}
-        onSubmit={(value, meta) => {
-          void run(() => sessionApi.answer(question.code, value, meta.responseTimeMs));
+        onSubmit={(value, meta, honeypot) => {
+          void run(() => sessionApi.answer(question.code, value, meta.responseTimeMs, honeypot));
         }}
       />
     );

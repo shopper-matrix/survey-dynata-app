@@ -22,7 +22,7 @@ import { registerTestEndPage } from './test-links/test-links.js';
 export interface AppDependencies {
   db: PrismaClient;
   env: Pick<Env, 'APP_BASE_URL' | 'SESSION_SECRET'> &
-    Partial<Pick<Env, 'ADMIN_SESSION_IDLE_MINUTES'>>;
+    Partial<Pick<Env, 'ADMIN_SESSION_IDLE_MINUTES' | 'TRUST_PROXY'>>;
   provider: SampleProvider;
   /** Bot check on the welcome screen; off when omitted. */
   botCheck?: BotCheck;
@@ -37,14 +37,19 @@ export async function buildApp({
   botCheck = createTurnstile({}),
   logger = false,
 }: AppDependencies): Promise<FastifyInstance> {
-  const app = Fastify({ logger });
+  const app = Fastify({ logger, trustProxy: env.TRUST_PROXY ?? false });
   await app.register(cookie, { secret: env.SESSION_SECRET });
   // Opt-in per route (login, entry links).
   await app.register(rateLimit, { global: false });
   const secureCookies = env.APP_BASE_URL.startsWith('https://');
 
   registerHealthRoute(app, db);
-  registerEntryRoute(app, { db, provider, appBaseUrl: env.APP_BASE_URL });
+  registerEntryRoute(app, {
+    db,
+    provider,
+    appBaseUrl: env.APP_BASE_URL,
+    fingerprintSecret: env.SESSION_SECRET,
+  });
   registerSessionRoutes(app, {
     db,
     provider,

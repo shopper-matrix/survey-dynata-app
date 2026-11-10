@@ -27,6 +27,8 @@ const answerBodySchema = z.strictObject({
     .min(0)
     .max(24 * 60 * 60 * 1000)
     .optional(),
+  /** Hidden honeypot field: people never see it, bots fill it in. */
+  hp: z.string().max(1000).optional(),
 });
 
 export interface SessionRouteOptions {
@@ -44,6 +46,9 @@ function screenResponse(step: FlowStep, language: string) {
   }
   return { done: true };
 }
+
+/** Stored quality flags as strings (the column is JSON). */
+const flagsOf = (value: unknown) => (Array.isArray(value) ? value.map(String) : []);
 
 const fail = (reply: FastifyReply, status: number, error: string, details?: unknown) =>
   reply.code(status).send({ error, ...(details === undefined ? {} : { details }) });
@@ -68,6 +73,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
             assignments: true,
             consentedAt: true,
             language: true,
+            qualityFlags: true,
           },
         })
       : null;
@@ -156,6 +162,14 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
 
     const body = answerBodySchema.safeParse(request.body);
     if (!body.success) return fail(reply, 400, 'invalid_request', body.error.issues);
+
+    if (body.data.hp) {
+      await db.respondent.update({
+        where: { id: respondent.id },
+        data: { qualityFlags: [...flagsOf(respondent.qualityFlags), 'honeypot'] },
+      });
+      return { done: true, ...(await endSession(db, provider, respondent.id, 'quality')) };
+    }
 
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const state = await loadRespondentState(db, respondent);

@@ -460,3 +460,23 @@ describe('languages (DSA-406)', () => {
     expect(first.question.config.options[0]).toEqual({ id: '1', label: 'Option eins' });
   });
 });
+
+describe('honeypot (DSA-502)', () => {
+  it('ends a respondent who filled the hidden field as quality, without saving the answer', async () => {
+    const session = await newSession();
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/session/answers',
+      headers: { cookie: `${SESSION_COOKIE}=${app.signCookie(session.respondent.id)}` },
+      payload: { questionCode: 'S1', value: { optionIds: ['1'] }, hp: 'http://spam.example' },
+    });
+    expect(response.json()).toMatchObject({ done: true, outcome: 'quality' });
+    const stored = await db.respondent.findUniqueOrThrow({
+      where: { id: session.respondent.id },
+      include: { answers: true },
+    });
+    expect(stored.status).toBe('quality');
+    expect(stored.qualityFlags).toEqual(['honeypot']);
+    expect(stored.answers).toEqual([]);
+  });
+});

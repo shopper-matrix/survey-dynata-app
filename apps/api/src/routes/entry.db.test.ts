@@ -192,3 +192,43 @@ describe('GET /s/:surveyId', () => {
     }
   });
 });
+
+describe('duplicate protection (DSA-502)', () => {
+  const from = (url: string, ip: string, userAgent: string) =>
+    app.inject({ method: 'GET', url, remoteAddress: ip, headers: { 'user-agent': userAgent } });
+
+  it('stores only salted hashes and flags repeated IPs and devices', async () => {
+    const survey = await db.survey.create({
+      data: { title: `dup ${randomUUID()}`, targetCompletes: 10, status: 'live' },
+    });
+    try {
+      const phone = 'Mozilla/5.0 (iPhone) Mobile';
+      const entrants = [
+        ['A', '198.51.100.1', phone],
+        ['B', '198.51.100.2', phone],
+        ['C', '198.51.100.1', 'Mozilla/5.0 (Windows NT 10.0) Desktop'],
+        ['D', '198.51.100.1', phone],
+      ] as const;
+      for (const [psid, ip, agent] of entrants) {
+        await from(entryPath(survey.id, `P-${psid}`), ip, agent);
+      }
+      const stored = await db.respondent.findMany({
+        where: { surveyId: survey.id },
+        orderBy: { panelRespondentId: 'asc' },
+      });
+      expect(stored.map((r) => [r.panelRespondentId, r.qualityFlags])).toEqual([
+        ['P-A', []],
+        ['P-B', []],
+        ['P-C', ['duplicate_ip']],
+        ['P-D', ['duplicate_ip', 'duplicate_device']],
+      ]);
+      expect(stored[0]?.ipHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(JSON.stringify(stored)).not.toContain('198.51.100');
+      // A duplicate Dynata ID is still blocked by the unique index: no second row.
+      await from(entryPath(survey.id, 'P-A'), '198.51.100.9', phone);
+      expect(await db.respondent.count({ where: { surveyId: survey.id } })).toBe(4);
+    } finally {
+      await db.survey.delete({ where: { id: survey.id } });
+    }
+  });
+});

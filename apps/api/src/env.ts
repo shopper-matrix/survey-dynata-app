@@ -19,10 +19,15 @@ const envSchema = z
     SESSION_SECRET: z
       .string({ error: 'is required' })
       .min(32, 'must be at least 32 characters (use a long random value)'),
-    /** Admin sessions end after this many minutes without activity. */
     /** Cloudflare Turnstile keys; without them the bot check is off. */
     TURNSTILE_SITE_KEY: z.string().optional(),
     TURNSTILE_SECRET_KEY: z.string().optional(),
+    /** Behind a reverse proxy / load balancer: take the client IP from X-Forwarded-For. */
+    TRUST_PROXY: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+    /** Admin sessions end after this many minutes without activity. */
     ADMIN_SESSION_IDLE_MINUTES: z.coerce
       .number()
       .int()

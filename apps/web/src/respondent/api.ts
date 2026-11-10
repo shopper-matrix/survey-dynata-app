@@ -49,11 +49,12 @@ export const sessionApi = {
   current: () => call('questions'),
   start: (botCheckToken?: string) => call('start', botCheckToken ? { botCheckToken } : {}),
   decline: () => call('decline', {}),
-  answer: (questionCode: string, value: unknown, responseTimeMs?: number) =>
+  answer: (questionCode: string, value: unknown, responseTimeMs?: number, honeypot = '') =>
     call('answers', {
       questionCode,
       value,
       ...(responseTimeMs === undefined ? {} : { responseTimeMs }),
+      ...(honeypot ? { hp: honeypot } : {}),
     }),
   finish: () => call('finish', {}),
 };

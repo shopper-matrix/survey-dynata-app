@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { deviceTypeFromUserAgent } from '../http/device.js';
 import { isTestRespondentId } from '../test-links/test-links.js';
 import { pages } from '../http/pages.js';
+import { duplicateFlags, fingerprint } from '../quality/fingerprint.js';
 import { startRespondentSession } from '../http/session.js';
 import {
   ProviderUnavailableError,
@@ -20,6 +21,8 @@ interface EntryRouteOptions {
   db: PrismaClient;
   provider: SampleProvider;
   appBaseUrl: string;
+  /** Keys the salted IP and device hashes. */
+  fingerprintSecret: string;
 }
 
 const paramsSchema = z.object({ surveyId: z.uuid() });
@@ -92,12 +95,30 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
     // Paused: respondents already in progress may finish (above), new ones are turned away.
     if (survey.pausedAt) return reply.redirect(verification.endLinks.overquota);
 
+    const isTest = survey.status === 'test' || isTestRespondentId(panelRespondentId);
+    const { ipHash, deviceHash } = fingerprint(
+      options.fingerprintSecret,
+      request.ip,
+      request.headers,
+    );
+    // Testers share one machine and network, so only real entrants are compared.
+    const earlier = { surveyId: survey.id, isTest: false, ipHash };
+    const qualityFlags = isTest
+      ? []
+      : duplicateFlags({
+          sameIp: await db.respondent.count({ where: earlier }),
+          sameIpAndDevice: await db.respondent.count({ where: { ...earlier, deviceHash } }),
+        });
+
     try {
       const respondent = await db.respondent.create({
         data: {
           surveyId: survey.id,
           panelRespondentId,
-          isTest: survey.status === 'test' || isTestRespondentId(panelRespondentId),
+          isTest,
+          ipHash,
+          deviceHash,
+          qualityFlags,
           deviceType: deviceTypeFromUserAgent(request.headers['user-agent']),
           language: chooseLanguage(
             [survey.language, ...Object.keys(survey.translations as Record<string, unknown>)],

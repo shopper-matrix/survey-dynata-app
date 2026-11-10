@@ -37,7 +37,8 @@ interface QuestionViewProps {
   /** Error from the server (e.g. connection lost), shown below the question. */
   error: string | null;
   t: Messages;
-  onSubmit: (value: AnswerValue, meta: AnswerMeta) => void;
+  /** `honeypot` is the hidden field's content: empty for people. */
+  onSubmit: (value: AnswerValue, meta: AnswerMeta, honeypot: string) => void;
 }
 
 /**
@@ -51,6 +52,7 @@ export function QuestionView({ question, progress, busy, error, t, onSubmit }: Q
   const [value, setValue] = useState<AnswerValue>();
   const [meta, setMeta] = useState<AnswerMeta>({});
   const [showError, setShowError] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
 
   // A new question starts empty and gets the focus, so screen readers announce it.
   useEffect(() => {
@@ -74,7 +76,7 @@ export function QuestionView({ question, progress, busy, error, t, onSubmit }: Q
               setShowError(true);
               return;
             }
-            onSubmit(value, meta);
+            onSubmit(value, meta, honeypot);
           }}
         >
           {t.next}
@@ -103,6 +105,22 @@ export function QuestionView({ question, progress, busy, error, t, onSubmit }: Q
         />
       </div>
       {message ? <ErrorMessage id={errorId}>{message}</ErrorMessage> : null}
+      {/* Honeypot (DSA-502): off-screen and skipped by keyboard and screen readers. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(event) => {
+              setHoneypot(event.target.value);
+            }}
+          />
+        </label>
+      </div>
     </SurveyLayout>
   );
 }

@@ -15,9 +15,14 @@ describe('loadEnv', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       ADMIN_SESSION_IDLE_MINUTES: 30,
+      TRUST_PROXY: false,
       DYNATA_MODE: 'mock',
       DYNATA_API_URL,
     });
+  });
+
+  it('reads TRUST_PROXY as a boolean', () => {
+    expect(loadEnv({ ...required, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
   });
 
   it('coerces PORT to a number', () => {
