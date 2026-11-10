@@ -53,6 +53,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      # Fails on known high or critical vulnerabilities in any dependency.
+      - run: pnpm audit --audit-level high
       - run: pnpm format:check
       - run: pnpm --filter @survey-dynata/api db:validate
       - run: pnpm lint

@@ -4,6 +4,7 @@ import type { PrismaClient } from '@survey-dynata/shared/db/client';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createTurnstile, type BotCheck } from './bot-check/turnstile.js';
 import type { Env } from './env.js';
+import { registerSecurityHeaders } from './http/security.js';
 import type { SampleProvider } from './providers/sample-provider.js';
 import { requireAdmin } from './admin/auth.js';
 import { applyQualityChecks } from './quality/apply.js';
@@ -38,6 +39,7 @@ export async function buildApp({
   logger = false,
 }: AppDependencies): Promise<FastifyInstance> {
   const app = Fastify({ logger, trustProxy: env.TRUST_PROXY ?? false });
+  await registerSecurityHeaders(app);
   await app.register(cookie, { secret: env.SESSION_SECRET });
   // Opt-in per route (login, entry links).
   await app.register(rateLimit, { global: false });

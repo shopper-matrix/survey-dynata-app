@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { deviceTypeFromUserAgent } from '../http/device.js';
 import { isTestRespondentId } from '../test-links/test-links.js';
 import { pages } from '../http/pages.js';
+import { ENTRY_RATE_LIMIT } from '../http/security.js';
 import { duplicateFlags, fingerprint } from '../quality/fingerprint.js';
 import { startRespondentSession } from '../http/session.js';
 import {
@@ -52,7 +53,7 @@ export function registerEntryRoute(app: FastifyInstance, options: EntryRouteOpti
     return reply.redirect(SURVEY_PAGE_PATH);
   };
 
-  app.get('/s/:surveyId', async (request, reply) => {
+  app.get('/s/:surveyId', { config: { rateLimit: ENTRY_RATE_LIMIT } }, async (request, reply) => {
     const params = paramsSchema.safeParse(request.params);
     const survey = params.success
       ? await db.survey.findUnique({

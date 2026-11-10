@@ -135,7 +135,7 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
   (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
@@ -147,7 +147,11 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
 - DSA-502: entry stores HMAC hashes of IP and device signature (`quality/fingerprint.ts`, keyed
   with `SESSION_SECRET`) and flags `duplicate_ip` / `duplicate_device`; `TRUST_PROXY=true` behind a
   reverse proxy. Hidden honeypot field `hp` in answers → quality termination (`honeypot` flag).
-  Next: DSA-503 (security hardening).
+- DSA-503: helmet with a script-free CSP, HSTS and frame-ancestors none on the API
+  (`http/security.ts`); the web build gets a CSP meta tag (`apps/web/vite.config.ts`; frame-ancestors
+  must come from the host, DSA-801). Entry links are rate-limited per IP. ESLint bans
+  `$queryRawUnsafe`/`$executeRawUnsafe`; CI runs `pnpm audit --audit-level high`.
+  Next: DSA-504 (privacy notice and data retention).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

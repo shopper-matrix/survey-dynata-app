@@ -28,6 +28,18 @@ export default tseslint.config(
     },
   },
   {
+    // DSA-503: only Prisma's tagged-template raw queries, which always bind parameters.
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...['$queryRawUnsafe', '$executeRawUnsafe'].map((property) => ({
+          property,
+          message: 'Use $queryRaw / $executeRaw tagged templates (parameterised).',
+        })),
+      ],
+    },
+  },
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     ...reactHooks.configs.flat['recommended-latest'],
     languageOptions: { globals: { ...globals.browser } },
