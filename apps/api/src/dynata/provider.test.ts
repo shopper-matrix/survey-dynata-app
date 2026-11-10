@@ -3,9 +3,10 @@ import { ProviderUnavailableError } from '../providers/sample-provider.js';
 import { DynataApiError, type DynataClient } from './client.js';
 import { DYNATA_API_URL, type DynataConfig } from './config.js';
 import { createDynataProvider } from './provider.js';
+import { hasValidSignature } from './signature.js';
 
 const links = {
-  verification: 'success' as const,
+  verification: 'success' as 'success' | 'failure',
   completeLink: 'https://d.example/end?rst=1',
   screenOutLink: 'https://d.example/end?rst=2',
   overQuotaLink: 'https://d.example/end?rst=3',
@@ -46,5 +47,46 @@ describe('Dynata sample provider', () => {
     await expect(provider.verifyEntry('https://x/s/1?psid=1')).rejects.toBeInstanceOf(
       ProviderUnavailableError,
     );
+  });
+
+  it('rethrows unexpected errors from the client unchanged', async () => {
+    const bug = new TypeError('bug');
+    const provider = make(() => Promise.reject(bug));
+    await expect(provider.verifyEntry('https://x/s/1?psid=1')).rejects.toBe(bug);
+  });
+
+  it('reports a failed verification with the invalid-signature link', async () => {
+    const provider = make(() => Promise.resolve({ ...links, verification: 'failure' as const }));
+    await expect(provider.verifyEntry('https://x/s/1?psid=1')).resolves.toMatchObject({
+      verified: false,
+      invalidLink: links.invalidSignatureLink,
+    });
+  });
+
+  it('signs mock end links per outcome and refuses live end links until DSA-304', () => {
+    const respondent = { panelRespondentId: 'P-1' };
+    const complete = make(() => Promise.resolve(links)).endLink(respondent, 'complete');
+    expect(complete).toContain('/mock-dynata/end?');
+    expect(complete).toContain('rst=1');
+    expect(hasValidSignature(complete, config.secret)).toBe(true);
+    expect(() =>
+      make(() => Promise.resolve(links), 'live').endLink(respondent, 'complete'),
+    ).toThrow(/DSA-304/);
+  });
+
+  it('builds signed test entry links with the client key ID', () => {
+    const url = make(() => Promise.resolve(links)).testEntryUrl(
+      'http://localhost:5173/s/1',
+      'TEST-1',
+    );
+    const params = new URL(url).searchParams;
+    expect(params.get('psid')).toBe('TEST-1');
+    expect(params.get('_k')).toBe('k');
+    expect(hasValidSignature(url, config.secret)).toBe(true);
+  });
+
+  it('registers the mock end page only in mock mode', () => {
+    expect('registerRoutes' in make(() => Promise.resolve(links))).toBe(true);
+    expect('registerRoutes' in make(() => Promise.resolve(links), 'live')).toBe(false);
   });
 });

@@ -62,6 +62,7 @@ jobs:
       - run: pnpm test
       - name: Apply migrations (as in production)
         run: pnpm db:deploy
-      - name: Database tests
-        run: pnpm --filter @survey-dynata/api test:db
+      # All API tests incl. database tests; fails below 90% coverage of dynata/, quotas/, quality/.
+      - name: Database tests and core coverage
+        run: pnpm --filter @survey-dynata/api test:coverage
       - run: pnpm build

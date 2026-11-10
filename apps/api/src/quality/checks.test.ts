@@ -125,3 +125,31 @@ describe('attention checks', () => {
     ).toEqual({ flags: [], terminate: false });
   });
 });
+
+describe('edge cases', () => {
+  it('ignores answers that are not grids and attention rows that were not answered', () => {
+    expect(isStraightlined({ optionId: '1' }, 2)).toBe(false);
+    expect(isStraightlined({ rows: null }, 2)).toBe(false);
+    expect(isStraightlined(null, 2)).toBe(false);
+    expect(passesAttentionCheck({ rows: { other: '1' } }, { row: 'check', expected: ['4'] })).toBe(
+      true,
+    );
+    expect(
+      passesAttentionCheck({ rows: { check: ['4'] } }, { row: 'check', expected: ['4'] }),
+    ).toBe(true);
+  });
+
+  it('runs no straightlining or attention checks when they are off', () => {
+    expect(
+      runQualityChecks({
+        settings: settings({
+          straightlining: { action: 'off' },
+          attentionCheck: { action: 'off' },
+        }),
+        interviewSeconds: 600,
+        referenceSeconds: 600,
+        answers: [flat, attention('1')],
+      }),
+    ).toEqual({ flags: [], terminate: false });
+  });
+});

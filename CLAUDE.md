@@ -62,6 +62,7 @@ docker compose up --build -V # after any package.json / lockfile change
 docker compose down -v       # wipe the local database
 pnpm db:migrate --name <change>  # schema change → new migration (never edit applied ones)
 pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, need a database)
+pnpm --filter @survey-dynata/api test:coverage  # all API tests; dynata/, quotas/, quality/ must stay >= 90%
 ```
 
 ## Database (Prisma 7)
@@ -135,7 +136,7 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503, 504.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503, 504, 701.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
   (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
@@ -154,7 +155,8 @@ pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, 
 - DSA-504: Settings tab edits welcome texts, privacy notice and `Survey.retentionDays` (null = keep).
   `retention/` deletes respondents (answers, redirect logs) that many days after they finished;
   runs at API start and daily (`scheduleRetention` in `server.ts`); `RetentionRun` logs counts only.
-  Next: M6 (DSA-701 coverage).
+- DSA-701: `apps/api/vitest.config.ts` enforces 90% coverage of `dynata/`, `quotas/`, `quality/`;
+  CI runs it with the database tests. Next: DSA-702 (Playwright end-to-end).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

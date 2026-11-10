@@ -30,3 +30,11 @@ describe('fingerprint', () => {
     ]);
   });
 });
+
+describe('repeated headers', () => {
+  it('joins headers sent more than once', () => {
+    const once = fingerprint(SECRET, '203.0.113.7', { 'accept-language': 'de,en' });
+    const twice = fingerprint(SECRET, '203.0.113.7', { 'accept-language': ['de', 'en'] });
+    expect(twice.deviceHash).toBe(once.deviceHash);
+  });
+});

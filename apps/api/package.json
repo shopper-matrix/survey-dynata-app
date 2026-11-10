@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude \"**/*.db.test.ts\"",
     "test:db": "vitest run .db.test --no-file-parallelism --test-timeout=15000",
+    "test:coverage": "vitest run --coverage --no-file-parallelism --test-timeout=15000",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
