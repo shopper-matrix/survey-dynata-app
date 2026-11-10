@@ -18,6 +18,7 @@ backups, restore): [docs/runbook.md](../docs/runbook.md).
 | `rollback.sh`       | Starts the previous release again                                 |
 | `backup.sh`         | Database dump into `<stack>/backups`                              |
 | `lib.sh`            | Functions shared by the scripts above                             |
+| `pull-backup.ps1`   | Run on your computer: fresh backup, downloaded and checked        |
 | `.env`              | Link to the stack's `.env`, created by the scripts (never commit) |
 
 ## First setup
@@ -71,4 +72,4 @@ are Docker volumes and survive deploys. `docker compose … down -v` deletes the
 ## Not covered yet
 
 Managed database and agreed region (DSA-801), uptime monitoring and Sentry (DSA-802),
-encrypted off-site daily backups (DSA-803).
+automated encrypted off-site backups (DSA-803 uses a daily manual download instead).

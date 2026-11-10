@@ -73,6 +73,33 @@ Manual backup: `bash $R/backup.sh <label>`. Copy one off the server with
 These backups sit on the same server: they protect against bad deploys and mistakes, not against
 losing the server.
 
+### Daily copy to your computer (DSA-803)
+
+Once a day, on a Windows computer with the server's SSH key, from the repository folder:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\deploy\pull-backup.ps1
+```
+
+It makes a fresh production backup on the server, downloads it to
+`Documents\survey-backups`, checks the SHA-256 checksum and deletes local copies older than 14
+days. Options: `-Destination <folder>`, `-KeepDays <n>`, `-Stack /opt/survey-staging`,
+`-Server`, `-KeyFile`.
+
+The dumps contain respondent data: keep them only on an encrypted disk (BitLocker / Windows
+device encryption, or an encrypted external drive), never in a synced or shared folder.
+
+To run it automatically every day (Task Scheduler, while you are logged in):
+
+```powershell
+$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-ExecutionPolicy Bypass -File "<repo>\deploy\pull-backup.ps1"'
+$trigger = New-ScheduledTaskTrigger -Daily -At 9am
+Register-ScheduledTask -TaskName 'Survey backup' -Action $action -Trigger $trigger
+```
+
+To restore a downloaded copy, upload it first, then follow the restore steps below:
+`scp -i <key> <file>.dump root@<server>:/opt/survey/backups/`
+
 Restore (replaces all data; stop the API first so no respondent writes in between; use
 `survey-staging-db-1` for staging):
 

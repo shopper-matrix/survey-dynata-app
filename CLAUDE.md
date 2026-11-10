@@ -175,6 +175,11 @@ pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (start
   `deploy/rollback.sh` is the one-step rollback; `docs/runbook.md` covers deploy, rollback,
   restore and pausing. Needs the repository secrets `DEPLOY_HOST`, `DEPLOY_SSH_KEY`,
   `DEPLOY_KNOWN_HOSTS`.
+- DSA-803 done as decided by the product owner (Nov 2026): instead of automated encrypted
+  off-site backups, `deploy/pull-backup.ps1` (run daily on the owner's computer, by hand or Task
+  Scheduler) makes a fresh dump, downloads it and verifies its checksum; 14 days kept locally.
+  Encryption relies on the local disk. Restore to a scratch database is documented and tested
+  (`docs/runbook.md`).
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
