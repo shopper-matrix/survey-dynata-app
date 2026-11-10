@@ -98,4 +98,14 @@ describe('Dynata settings (DSA-604)', () => {
     });
     expect(details.json()).toMatchObject({ entryUrl: `${BASE}/s/${first ?? ''}`, quotaCounts: {} });
   });
+
+  it('validates the project ID and the survey', async () => {
+    const [first] = surveyIds;
+    const blank = await settings('editor', first ?? '', { projectId: '  ' });
+    expect(blank.statusCode).toBe(400);
+    expect((await settings('editor', 'not-a-uuid', { projectId: 'DYN-9' })).statusCode).toBe(400);
+    expect((await settings('viewer', 'not-a-uuid')).statusCode).toBe(400);
+    const missing = await settings('editor', randomUUID(), { projectId: 'DYN-9' });
+    expect(missing.statusCode).toBe(404);
+  });
 });

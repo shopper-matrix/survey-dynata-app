@@ -30,6 +30,13 @@ describe('mock Dynata client', () => {
     }
   });
 
+  it('returns end links with an empty respondent ID when psid is missing', async () => {
+    const links = await client.buildAndValidate(
+      signUrl(`${APP}/s/survey-1?project=10001&_k=k1`, 'mock-secret'),
+    );
+    expect(new URL(links.completeLink).searchParams.get('psid')).toBe('');
+  });
+
   it('fails verification for a wrong key ID, a wrong secret or a tampered link', async () => {
     const results = await Promise.all([
       client.buildAndValidate(entry('other-key')),
@@ -76,6 +83,17 @@ describe('live Dynata client', () => {
       overQuotaLink: response.overQuotaLink,
       invalidSignatureLink: response.invalidSignatureLink,
     });
+  });
+
+  it('uses the global fetch when none is passed', async () => {
+    const fetchStub = vi.fn<typeof fetch>().mockResolvedValue(Response.json(response));
+    vi.stubGlobal('fetch', fetchStub);
+    try {
+      await createDynataClient(liveConfig, { appBaseUrl: APP }).buildAndValidate('https://x/s');
+      expect(fetchStub).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('throws DynataApiError on network errors, HTTP errors and unexpected responses', async () => {
