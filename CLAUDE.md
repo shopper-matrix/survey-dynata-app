@@ -180,6 +180,9 @@ pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (start
   Scheduler) makes a fresh dump, downloads it and verifies its checksum; 14 days kept locally.
   Encryption relies on the local disk. Restore to a scratch database is documented and tested
   (`docs/runbook.md`).
+- DSA-802 partly done: domain, automatic HTTPS and `/health` live; email uptime alerts via an
+  external monitor on `/health` (setup in `docs/runbook.md`, account owned by the product
+  owner). Sentry is still open.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.

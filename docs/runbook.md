@@ -122,6 +122,18 @@ docker exec survey-db-1 sh -c 'psql -U "$POSTGRES_USER" -d restore_test -c "SELE
 docker exec survey-db-1 sh -c 'dropdb -U "$POSTGRES_USER" restore_test'
 ```
 
+## Monitoring (DSA-802)
+
+An external uptime service checks production every 5 minutes and emails the team when it is
+down (set up once, free plan of UptimeRobot or similar):
+
+- Monitor type: keyword, URL `https://SITE_DOMAIN/health`, keyword `"database":"ok"` must
+  exist, interval 5 minutes, alert by email.
+- Optional second monitor for `https://STAGING_DOMAIN/health`.
+
+When an alert comes: `curl https://SITE_DOMAIN/health`, then "Looking around" below; a bad
+release is fixed with "Rollback". Error tracking (Sentry) is not set up yet.
+
 ## Pausing a live survey
 
 Admin → the survey → **Pause survey** (DSA-309). Respondents already in the survey may finish;
