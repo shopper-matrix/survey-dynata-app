@@ -1,34 +1,48 @@
-# Production deploy (single server)
+# Deploy: production and staging on one server
 
-Runs the whole app on one Linux server with Docker: PostgreSQL, the API and
-[Caddy](https://caddyserver.com/) (HTTPS, serves the built frontend, forwards `/api/…`, `/s/…`,
-`/mock-dynata/…` and `/health` to the API). The API applies pending migrations at every start.
-Day-to-day operation (automatic deploys, rollback, backups, restore): [docs/runbook.md](../docs/runbook.md).
+Runs the app on one Linux server with Docker, as two stacks (production from `main`, staging
+from `dev`), each with PostgreSQL, the API (applies pending migrations at every start) and a web
+container serving the built frontend. One [Caddy](https://caddyserver.com/) edge proxy in front
+gets the HTTPS certificates and routes `/api/…`, `/s/…`, `/mock-dynata/…` and `/health` to the
+API, everything else to the frontend. Day-to-day operation (automatic deploys, rollback,
+backups, restore): [docs/runbook.md](../docs/runbook.md).
 
 | File                | What it is                                                        |
 | ------------------- | ----------------------------------------------------------------- |
-| `Dockerfile.prod`   | Builds the monorepo; targets `api` (Node) and `web` (Caddy)       |
-| `compose.prod.yaml` | The three services, volumes for database and certificates         |
-| `Caddyfile`         | HTTPS for `SITE_DOMAIN`, `www.` redirect, security headers        |
+| `Dockerfile.prod`   | Builds the monorepo; targets `api` (Node) and `web` (Caddy, HTTP) |
+| `compose.prod.yaml` | One stack: database, API, web; project name from `STACK_NAME`     |
+| `Caddyfile`         | Web container: serves the frontend with security headers          |
+| `edge/compose.yaml` | The edge proxy on ports 80/443                                    |
+| `edge/Caddyfile`    | HTTPS and routing for both domains, `www.` redirect               |
 | `deploy.sh`         | Backup, build and start a release, health check, rollback if bad  |
 | `rollback.sh`       | Starts the previous release again                                 |
-| `backup.sh`         | Database dump into `/opt/survey/backups`                          |
+| `backup.sh`         | Database dump into `<stack>/backups`                              |
 | `lib.sh`            | Functions shared by the scripts above                             |
-| `.env`              | Link to `/opt/survey/.env`, created by the scripts (never commit) |
+| `.env`              | Link to the stack's `.env`, created by the scripts (never commit) |
 
 ## First setup
 
 Prerequisites: a server with Docker and Docker Compose, ports 80 and 443 open, and DNS `A`
-records for `SITE_DOMAIN` and `www.SITE_DOMAIN` pointing at it (Caddy needs them to get the
-certificates).
+records for `SITE_DOMAIN`, `www.SITE_DOMAIN` and `STAGING_DOMAIN` pointing at it (Caddy needs
+them to get the certificates).
 
-1. Create `/opt/survey/.env` on the server, generating the secrets there:
+1. Create the two `.env` files on the server, generating the secrets there:
 
    ```sh
-   mkdir -p /opt/survey && cd /opt/survey
    umask 077
-   cat > .env <<EOF
+   mkdir -p /opt/survey /opt/survey-staging
+   cat > /opt/survey/.env <<EOF
+   STACK_NAME=survey
    SITE_DOMAIN=survey.example.com
+   STAGING_DOMAIN=staging.survey.example.com
+   MANAGE_EDGE=true
+   POSTGRES_PASSWORD=$(openssl rand -hex 24)
+   SESSION_SECRET=$(openssl rand -hex 32)
+   DYNATA_MODE=mock
+   EOF
+   cat > /opt/survey-staging/.env <<EOF
+   STACK_NAME=survey-staging
+   SITE_DOMAIN=staging.survey.example.com
    POSTGRES_PASSWORD=$(openssl rand -hex 24)
    SESSION_SECRET=$(openssl rand -hex 32)
    DYNATA_MODE=mock
@@ -40,20 +54,21 @@ certificates).
    [../.env.example](../.env.example). `POSTGRES_PASSWORD` only applies when the database volume
    is first created.
 
-2. Set up the GitHub secrets (runbook, "Deploy") and run the **Deploy** workflow on `main`.
-   Without GitHub: unpack `git archive main` into `/opt/survey/releases/<time>-<sha>` and run
+2. Set up the GitHub secrets (runbook, "Deploy") and run the **Deploy** workflow on `main`, then
+   on `dev`. Production first: it starts the edge proxy. Without GitHub: unpack
+   `git archive main` into `/opt/survey/releases/<time>-<sha>` and run
    `bash /opt/survey/releases/<time>-<sha>/deploy/deploy.sh /opt/survey/releases/<time>-<sha>`.
-3. Create the first admin (the password is printed once):
+3. Create the first admin in each stack (the password is printed once):
 
    ```sh
-   cd /opt/survey/current/deploy
+   cd /opt/survey/current/deploy      # or /opt/survey-staging/current/deploy
    docker compose -f compose.prod.yaml exec api pnpm admin:create you@example.com owner
    ```
 
-Database data (`survey_db-data`) and certificates (`survey_caddy-data`) are Docker volumes and
-survive deploys. `docker compose … down -v` deletes them.
+Database data (`survey_db-data`, `survey-staging_db-data`) and certificates (`edge_caddy-data`)
+are Docker volumes and survive deploys. `docker compose … down -v` deletes them.
 
 ## Not covered yet
 
-Staging environment, managed database and region (DSA-801), uptime monitoring and Sentry
-(DSA-802), encrypted off-site daily backups (DSA-803).
+Managed database and agreed region (DSA-801), uptime monitoring and Sentry (DSA-802),
+encrypted off-site daily backups (DSA-803).

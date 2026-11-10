@@ -1,0 +1,26 @@
+# Routes one domain to one app stack (compose project name as argument): API routes to its API
+# container, everything else to its web container (the built frontend).
+(app) {
+	encode zstd gzip
+
+	@api path /api/* /s/* /mock-dynata/* /health
+	handle @api {
+		reverse_proxy {args[0]}-api-1:3000
+	}
+	handle {
+		reverse_proxy {args[0]}-web-1:80
+	}
+}
+
+www.{$PROD_DOMAIN} {
+	redir https://{$PROD_DOMAIN}{uri} permanent
+}
+
+{$PROD_DOMAIN} {
+	import app survey
+}
+
+{$STAGING_DOMAIN} {
+	header X-Robots-Tag "noindex, nofollow"
+	import app survey-staging
+}

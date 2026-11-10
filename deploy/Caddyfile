@@ -1,28 +1,20 @@
-# Public entry point: HTTPS (automatic Let's Encrypt certificates) for SITE_DOMAIN.
-www.{$SITE_DOMAIN} {
-	redir https://{$SITE_DOMAIN}{uri} permanent
+# Web container of one app stack: serves the built frontend over plain HTTP inside the server.
+# HTTPS and routing are done by the edge proxy (deploy/edge).
+{
+	auto_https off
+	admin off
 }
 
-{$SITE_DOMAIN} {
-	encode zstd gzip
-
-	# API, survey entry links and mock Dynata pages go to the API (it sets its own security headers).
-	@api path /api/* /s/* /mock-dynata/* /health
-	handle @api {
-		reverse_proxy api:3000
+:80 {
+	# Its CSP comes as a meta tag from the build; frame-ancestors can only be sent as a header
+	# (DSA-503).
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Content-Security-Policy "frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
 	}
-
-	# Everything else: the built frontend (single-page app). Its CSP comes as a meta tag from the
-	# build; frame-ancestors can only be sent as a header (DSA-503).
-	handle {
-		header {
-			Strict-Transport-Security "max-age=31536000"
-			Content-Security-Policy "frame-ancestors 'none'"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-		root * /srv
-		try_files {path} /index.html
-		file_server
-	}
+	root * /srv
+	try_files {path} /index.html
+	file_server
 }

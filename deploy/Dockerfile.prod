@@ -1,6 +1,7 @@
 # Production images, built from the repo root (see deploy/README.md).
 # Stage "build" installs and builds everything. Target "api" applies pending migrations, then
-# starts the API. Target "web" is Caddy serving the built frontend and proxying API routes.
+# starts the API. Target "web" is Caddy serving the built frontend over plain HTTP; the edge
+# proxy (deploy/edge) adds HTTPS and sends API routes to the api container.
 FROM node:26-alpine AS build
 RUN npm install -g pnpm@12.18.0
 WORKDIR /app
@@ -13,4 +14,5 @@ EXPOSE 3000
 CMD ["sh", "-c", "pnpm db:deploy && node apps/api/dist/server.js"]
 
 FROM caddy:2-alpine AS web
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/web/dist /srv

@@ -1,37 +1,38 @@
 name: Deploy
 
-# Production deploy (DSA-804): after CI passes on a push to main (i.e. a merged PR), back up the
-# database, deploy the new version and check /health; an unhealthy version is rolled back.
-# Can also be started by hand (Actions > Deploy > Run workflow) to redeploy main.
-# Needs the "production" environment secrets DEPLOY_HOST, DEPLOY_SSH_KEY and DEPLOY_KNOWN_HOSTS
-# (docs/runbook.md).
+# After CI passes on a push (DSA-801, DSA-804): main deploys to production, dev to staging, both
+# on the same server. deploy/deploy.sh backs up the database, starts the new version and checks
+# it; an unhealthy version is rolled back. Can also be started by hand on main or dev
+# (Actions > Deploy > Run workflow). Needs the repository secrets DEPLOY_HOST, DEPLOY_SSH_KEY and
+# DEPLOY_KNOWN_HOSTS (docs/runbook.md).
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
-
-# One deploy at a time; a newer one waits instead of interrupting a running deploy.
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   deploy:
-    name: Back up and deploy to production
+    name: Back up and deploy to ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && 'production' || 'staging' }}
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && (github.ref_name == 'main' || github.ref_name == 'dev')) ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && 'production' || 'staging' }}
+
+    # One deploy per environment at a time; a newer one waits instead of interrupting.
+    concurrency:
+      group: deploy-${{ github.event.workflow_run.head_branch || github.ref_name }}
+      cancel-in-progress: false
 
     env:
       SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      STACK_DIR: ${{ (github.event.workflow_run.head_branch || github.ref_name) == 'main' && '/opt/survey' || '/opt/survey-staging' }}
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
 
     steps:
@@ -55,13 +56,13 @@ jobs:
       - name: Upload and unpack
         run: |
           RELEASE="$(date -u +%Y%m%dT%H%M%SZ)-${SHA::7}"
-          echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+          echo "RELEASE_DIR=$STACK_DIR/releases/$RELEASE" >> "$GITHUB_ENV"
           scp -i ~/.ssh/deploy_key release.tar.gz "root@$DEPLOY_HOST:/tmp/release-$RELEASE.tar.gz"
           ssh -i ~/.ssh/deploy_key "root@$DEPLOY_HOST" \
-            "set -e; mkdir -p /opt/survey/releases/$RELEASE; tar -xzf /tmp/release-$RELEASE.tar.gz -C /opt/survey/releases/$RELEASE; rm /tmp/release-$RELEASE.tar.gz"
+            "set -e; mkdir -p $STACK_DIR/releases/$RELEASE; tar -xzf /tmp/release-$RELEASE.tar.gz -C $STACK_DIR/releases/$RELEASE; rm /tmp/release-$RELEASE.tar.gz"
 
       - name: Back up database, deploy, health check
-        run: ssh -i ~/.ssh/deploy_key "root@$DEPLOY_HOST" "bash /opt/survey/releases/$RELEASE/deploy/deploy.sh /opt/survey/releases/$RELEASE"
+        run: ssh -i ~/.ssh/deploy_key "root@$DEPLOY_HOST" "bash $RELEASE_DIR/deploy/deploy.sh $RELEASE_DIR"
 
       - name: Remove SSH key
         if: always()

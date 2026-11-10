@@ -164,14 +164,17 @@ pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (start
   only; `E2E_BASE_URL` targets staging once it exists (DSA-801).
 - Waiting for product-owner input: 703 (needs staging), 801–804 (hosting, region, domain,
   monitoring accounts), 805 (licence, publication approval). Parked: 303, 304, 704.
-- DSA-801 started (product owner, Nov 2026): production runs from `main` on one Hostinger VPS
-  (Ubuntu 24.04 + Docker) at https://serafima.cloud, mock Dynata mode, via `deploy/`
-  (`compose.prod.yaml`: Postgres, API, Caddy for HTTPS). Staging, managed database/region,
-  monitoring and off-site backups are still open (801–803); see `deploy/README.md`.
-- DSA-804 done: `.github/workflows/deploy.yml` deploys `main` after CI passes (backup, build,
-  `/health` check, automatic rollback) via `deploy/deploy.sh`; `deploy/rollback.sh` is the
-  one-step rollback; `docs/runbook.md` covers deploy, rollback, restore and pausing. Needs the
-  `production` environment secrets `DEPLOY_HOST`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`.
+- DSA-801 done as decided by the product owner (Nov 2026): production (`main`,
+  https://serafima.cloud, `/opt/survey`) and staging (`dev`, https://staging.serafima.cloud,
+  `/opt/survey-staging`) run on one Hostinger VPS (Ubuntu 24.04 + Docker), each its own compose
+  stack (`deploy/compose.prod.yaml`, `STACK_NAME`) with its own Postgres and secrets, behind one
+  Caddy edge proxy (`deploy/edge/`). Deviation from the guide: self-hosted Postgres on the VPS,
+  not a managed database. Mock Dynata mode in both.
+- DSA-804 done: `.github/workflows/deploy.yml` deploys after CI passes (`main` → production,
+  `dev` → staging: backup, build, health check, automatic rollback) via `deploy/deploy.sh`;
+  `deploy/rollback.sh` is the one-step rollback; `docs/runbook.md` covers deploy, rollback,
+  restore and pausing. Needs the repository secrets `DEPLOY_HOST`, `DEPLOY_SSH_KEY`,
+  `DEPLOY_KNOWN_HOSTS`.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
