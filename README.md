@@ -93,6 +93,13 @@ pnpm format      # Prettier
 `lint`, `typecheck` and `test` regenerate the Prisma client first, so a fresh clone works without
 extra steps.
 
+End-to-end tests (Playwright) walk every respondent path in a browser, on phone and desktop:
+
+```sh
+pnpm --filter @survey-dynata/e2e exec playwright install chromium   # once
+pnpm --filter @survey-dynata/e2e e2e   # needs the database; reuses or starts API and web
+```
+
 ## Database
 
 The schema is [apps/api/prisma/schema.prisma](apps/api/prisma/schema.prisma) (Prisma). The

@@ -17,7 +17,7 @@ jobs:
   ci:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     # Throwaway database for migrations and DB tests; exists only for this job, so the
     # credentials below are not secrets.
@@ -66,3 +66,9 @@ jobs:
       - name: Database tests and core coverage
         run: pnpm --filter @survey-dynata/api test:coverage
       - run: pnpm build
+      # Every respondent path in a real browser, phone and desktop (DSA-702). Playwright
+      # starts API and web dev servers against the CI database.
+      - name: Install Playwright browser
+        run: pnpm --filter @survey-dynata/e2e exec playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: pnpm --filter @survey-dynata/e2e e2e

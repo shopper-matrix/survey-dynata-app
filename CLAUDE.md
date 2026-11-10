@@ -46,6 +46,7 @@ Source documents (read the relevant section before each story):
 
 pnpm workspaces monorepo:
 
+- `e2e`: Playwright end-to-end tests (reuse the API's importer and Dynata provider for exact links)
 - `apps/web`: frontend (Vite; React + Tailwind + shadcn/ui per the guide)
 - `apps/api`: backend (Node + TypeScript; env validated with Zod in `src/env.ts`)
 - `packages/shared`: code and Zod schemas shared by both apps (consumed as TS source)
@@ -63,6 +64,7 @@ docker compose down -v       # wipe the local database
 pnpm db:migrate --name <change>  # schema change → new migration (never edit applied ones)
 pnpm --filter @survey-dynata/api test:db  # DB integration tests (*.db.test.ts, need a database)
 pnpm --filter @survey-dynata/api test:coverage  # all API tests; dynata/, quotas/, quality/ must stay >= 90%
+pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (starts servers unless running)
 ```
 
 ## Database (Prisma 7)
@@ -136,7 +138,7 @@ pnpm --filter @survey-dynata/api test:coverage  # all API tests; dynata/, quotas
   condition evaluator live in `packages/shared` (`answers.ts`, `evaluate-condition.ts`).
   API routes are under `/api/…`; the Vite proxy no longer strips the prefix.
   DB tests run one file at a time (`test:db`), since they share one database.
-- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503, 504, 701.
+- Done since (one commit each): 307, 305 core, 308, 601, 602, 309, 606, 607, 401–406, 603, 604, 605, 501, 502, 503, 504, 701, 702.
   Admin UI lives in `apps/web/src/admin/` (builder tabs: Questions / Quotas / Dynata); per-survey
   provider settings come from the optional `SampleProvider.registerAdminRoutes` hook
   (`dynata/admin-routes.ts`). Live stats: `GET /api/admin/surveys/:id/stats` (`stats/fieldwork.ts`,
@@ -156,7 +158,12 @@ pnpm --filter @survey-dynata/api test:coverage  # all API tests; dynata/, quotas
   `retention/` deletes respondents (answers, redirect logs) that many days after they finished;
   runs at API start and daily (`scheduleRetention` in `server.ts`); `RetentionRun` logs counts only.
 - DSA-701: `apps/api/vitest.config.ts` enforces 90% coverage of `dynata/`, `quotas/`, `quality/`;
-  CI runs it with the database tests. Next: DSA-702 (Playwright end-to-end).
+  CI runs it with the database tests.
+- DSA-702: `e2e/` covers complete, screen-out, over-quota, quality, duplicate entry and invalid
+  signature on phone and desktop, asserting exact end URLs and DB status; runs in CI. Mock mode
+  only; `E2E_BASE_URL` targets staging once it exists (DSA-801).
+- Waiting for product-owner input: 703 (needs staging), 801–804 (hosting, region, domain,
+  monitoring accounts), 805 (licence, publication approval). Parked: 303, 304, 704.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.
 - Light-mode `--muted-foreground` is darkened to `oklch(0.53 0 0)` (shadcn default 0.556) for WCAG AA.
