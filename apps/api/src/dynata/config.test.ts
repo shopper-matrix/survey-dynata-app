@@ -16,7 +16,7 @@ describe('Dynata config', () => {
       apiUrl: DYNATA_API_URL,
       security: 'start-end',
       endUrl: DYNATA_END_URL,
-      qualityFlag: '2',
+      qualityFlag: '1',
     });
   });
 
@@ -28,7 +28,7 @@ describe('Dynata config', () => {
       DYNATA_KEY_ID: 'client-key',
       DYNATA_SECRET: 'client-secret',
       DYNATA_END_URL: 'https://end.example/projects/end',
-      DYNATA_QUALITY_FLAG: '1',
+      DYNATA_QUALITY_FLAG: '3',
     });
     expect(dynataConfig(env)).toMatchObject({
       mode: 'live',
@@ -36,7 +36,7 @@ describe('Dynata config', () => {
       keyId: 'client-key',
       secret: 'client-secret',
       endUrl: 'https://end.example/projects/end',
-      qualityFlag: '1',
+      qualityFlag: '3',
     });
   });
 

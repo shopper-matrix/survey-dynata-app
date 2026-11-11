@@ -185,9 +185,9 @@ pnpm --filter @survey-dynata/e2e e2e  # Playwright, every respondent path (start
   owner). Sentry is still open.
 - DSA-304 End mode done (product owner chose "Dynata Secured Links (End)", Nov 2026):
   `DYNATA_SECURITY=end` builds and signs end links in `dynata/end-links.ts` (`endLinkFor`, the
-  only place producing them); entry links are unsigned. `DYNATA_END_URL` and
-  `DYNATA_QUALITY_FLAG` (default 2) still need confirming against the links in the Dynata
-  project. Start-End stays the default for local/e2e; live Start-End is refused at startup.
+  only place producing them); entry links are unsigned. End page and quality link
+  (`rst=2&qFlag=1`, `DYNATA_QUALITY_FLAG` default 1) match the links shown in our Dynata
+  project; Dynata's test run must still confirm the signed links are accepted. Start-End stays the default for local/e2e; live Start-End is refused at startup.
   Still open from 303: `EntryAttempt` logging and per-survey signature switch.
 - DSA-106 open questions (quality-termination link, API limits…) are listed in
   `docs/dynata-integration.md`.

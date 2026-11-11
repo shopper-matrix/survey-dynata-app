@@ -25,11 +25,11 @@ export const dynataEnvShape = {
   DYNATA_API_URL: z.url().default(DYNATA_API_URL),
   /** End mode: Dynata's end page, from the end links shown in the Dynata project. */
   DYNATA_END_URL: z.url().default(DYNATA_END_URL),
-  /** End mode: value of `qflag` on quality terminations (rst=2&qflag=…). */
+  /** End mode: value of `qFlag` on quality terminations (rst=2&qFlag=…), as in the project's links. */
   DYNATA_QUALITY_FLAG: z
     .string()
     .regex(/^[A-Za-z0-9_-]+$/, 'must be a plain value such as 2')
-    .default('2'),
+    .default('1'),
 };
 
 type DynataEnv = z.infer<z.ZodObject<typeof dynataEnvShape>>;

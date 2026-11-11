@@ -20,7 +20,7 @@ describe('loadEnv', () => {
       DYNATA_SECURITY: 'start-end',
       DYNATA_API_URL,
       DYNATA_END_URL,
-      DYNATA_QUALITY_FLAG: '2',
+      DYNATA_QUALITY_FLAG: '1',
     });
   });
 

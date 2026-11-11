@@ -26,8 +26,10 @@ and `DYNATA_SECURITY`, which must match the security mode chosen in the Dynata p
 - `DYNATA_SECURITY=end` ("Dynata Secured Links (End)", DSA-304): entry links are not signed;
   Dynata appends `psid`. On finish, `endLinkFor` in `apps/api/src/dynata/end-links.ts` builds
   `<DYNATA_END_URL>?rst=…&psid=…&_k=<key ID>` and appends `&_s=` (HMAC-SHA256 over path +
-  query, as above). Quality terminations use `rst=2&qflag=<DYNATA_QUALITY_FLAG>` (default `2`,
-  the signed-table value). The end link is stored in `RedirectLog`, so a refresh returns the same
+  query, as above). Quality terminations use `rst=2&qFlag=<DYNATA_QUALITY_FLAG>` (default `1`),
+  spelled and valued as in the links of our Dynata project (Nov 2026):
+  complete `?rst=1&psid={psid}`, terminated `?rst=2&psid={psid}`, quality
+  `?rst=2&qFlag=1&psid={psid}`, over-quota `?rst=3&psid={psid}`; we append `&_k=…&_s=…`. The end link is stored in `RedirectLog`, so a refresh returns the same
   link. In mock mode the same links point at `<APP_BASE_URL>/mock-dynata/end`. Works in live
   mode.
 - `DYNATA_SECURITY=start-end` (default, used by the local and e2e tests): entry links are

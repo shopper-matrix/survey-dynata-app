@@ -20,6 +20,7 @@ describe('mock Dynata end page', () => {
     ['rst=2&psid=P-1', 'Screen-out'],
     ['rst=3&psid=P-1', 'Over-quota'],
     ['rst=2&qflag=1&psid=P-1', 'Quality termination'],
+    ['rst=2&qFlag=1&psid=P-1&_k=k', 'Quality termination'],
     ['rst=2&svFlag=1&psid=P-1', 'Invalid entry signature'],
     ['rst=9&psid=P-1', 'Unknown result code'],
   ])('names the outcome of %s', async (query, outcome) => {

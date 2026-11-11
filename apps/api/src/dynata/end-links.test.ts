@@ -21,7 +21,7 @@ describe('End-mode links (Dynata Secured Links End)', () => {
     expect(query('complete')).toMatch(/^\?rst=1&psid=P&_k=1234&_s=/);
     expect(query('screenout')).toMatch(/^\?rst=2&psid=P&_k=1234&_s=/);
     expect(query('overquota')).toMatch(/^\?rst=3&psid=P&_k=1234&_s=/);
-    expect(query('quality')).toMatch(/^\?rst=2&qflag=2&psid=P&_k=1234&_s=/);
+    expect(query('quality')).toMatch(/^\?rst=2&qFlag=2&psid=P&_k=1234&_s=/);
   });
 
   it('signs a different link per respondent, verifiable with the secret only', () => {

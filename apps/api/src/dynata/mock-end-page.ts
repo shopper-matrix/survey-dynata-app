@@ -7,7 +7,7 @@ import { hasValidSignature } from './signature.js';
 
 function outcomeOf(params: URLSearchParams): string {
   if (params.get('svFlag') === '1') return 'Invalid entry signature';
-  if (params.has('qflag')) return 'Quality termination';
+  if (params.has('qflag') || params.has('qFlag')) return 'Quality termination';
   switch (params.get('rst')) {
     case '1':
       return 'Complete';

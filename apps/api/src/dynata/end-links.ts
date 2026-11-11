@@ -15,7 +15,7 @@ function resultCode(outcome: EndOutcome, qualityFlag: string): string {
     case 'overquota':
       return 'rst=3';
     case 'quality':
-      return `rst=2&qflag=${encodeURIComponent(qualityFlag)}`;
+      return `rst=2&qFlag=${encodeURIComponent(qualityFlag)}`;
   }
 }
 

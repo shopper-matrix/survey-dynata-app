@@ -117,7 +117,7 @@ describe('Dynata sample provider in End mode', () => {
     expect(result.endLinks.complete).toMatch(
       /^https:\/\/dkr1\.ssisurveys\.com\/projects\/end\?rst=1&psid=P-1&_k=k&_s=[0-9a-f]{64}$/,
     );
-    expect(result.endLinks.quality).toContain('?rst=2&qflag=2&psid=P-1&_k=k&_s=');
+    expect(result.endLinks.quality).toContain('?rst=2&qFlag=2&psid=P-1&_k=k&_s=');
     expect(hasValidSignature(result.endLinks.overquota, config.secret)).toBe(true);
   });
 
