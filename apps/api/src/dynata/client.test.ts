@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDynataClient, DynataApiError } from './client.js';
-import { DYNATA_API_URL, type DynataConfig } from './config.js';
+import { DYNATA_API_URL, DYNATA_END_URL, type DynataConfig } from './config.js';
 import { hasValidSignature, signUrl } from './signature.js';
 
 const APP = 'http://localhost:3000';
@@ -9,6 +9,9 @@ const mockConfig: DynataConfig = {
   keyId: 'k1',
   secret: 'mock-secret',
   apiUrl: DYNATA_API_URL,
+  security: 'start-end',
+  endUrl: DYNATA_END_URL,
+  qualityFlag: '2',
 };
 const entry = (keyId = 'k1', secret = 'mock-secret') =>
   signUrl(`${APP}/s/survey-1?project=10001&psid=P-42&_k=${keyId}`, secret);

@@ -8,7 +8,7 @@ import { buildApp } from '../app.js';
 import { createDb } from '../db.js';
 import { loadEnv } from '../env.js';
 import { createDynataClient } from './client.js';
-import { DYNATA_API_URL, type DynataConfig } from './config.js';
+import { DYNATA_API_URL, DYNATA_END_URL, type DynataConfig } from './config.js';
 import { createDynataProvider } from './provider.js';
 
 try {
@@ -19,7 +19,15 @@ try {
 
 const BASE = 'http://localhost:5173';
 const db = createDb(loadEnv().DATABASE_URL);
-const dynata: DynataConfig = { mode: 'mock', keyId: 'k', secret: 's', apiUrl: DYNATA_API_URL };
+const dynata: DynataConfig = {
+  mode: 'mock',
+  keyId: 'k',
+  secret: 's',
+  apiUrl: DYNATA_API_URL,
+  security: 'start-end',
+  endUrl: DYNATA_END_URL,
+  qualityFlag: '2',
+};
 const surveyIds: string[] = [];
 const adminIds: string[] = [];
 const cookies: Record<string, string> = {};
@@ -77,10 +85,16 @@ describe('Dynata settings (DSA-604)', () => {
     expect((await settings('viewer', first ?? '')).json()).toEqual({
       projectId: null,
       mode: 'mock',
+      security: 'start-end',
       keyConfigured: false,
     });
     const saved = await settings('editor', first ?? '', { projectId: ' DYN-1 ' });
-    expect(saved.json()).toEqual({ projectId: 'DYN-1', mode: 'mock', keyConfigured: false });
+    expect(saved.json()).toEqual({
+      projectId: 'DYN-1',
+      mode: 'mock',
+      security: 'start-end',
+      keyConfigured: false,
+    });
     expect(saved.body).not.toContain('"s"');
   });
 

@@ -20,12 +20,20 @@ Source: Dynata, "Signed URL Start-End API" (August 2025), in
 
 ## How the app uses it
 
-- `DYNATA_MODE=live`: `apps/api/src/dynata/client.ts` calls the API above (5 s timeout) once per
-  entering respondent. The returned, already signed end links are stored for that respondent
-  (DSA-302/303) and used on finish (DSA-305), so refreshing always returns the same link.
-- `DYNATA_MODE=mock` (default): the same interface works locally. Entry links are verified with
-  the documented algorithm and the mock credentials; end links point at
-  `<APP_BASE_URL>/mock-dynata/end?project=…&psid=…&rst=…` and are signed the same way.
+Two settings: `DYNATA_MODE` (`mock`: links point at local test pages; `live`: real Dynata links)
+and `DYNATA_SECURITY`, which must match the security mode chosen in the Dynata project.
+
+- `DYNATA_SECURITY=end` ("Dynata Secured Links (End)", DSA-304): entry links are not signed;
+  Dynata appends `psid`. On finish, `endLinkFor` in `apps/api/src/dynata/end-links.ts` builds
+  `<DYNATA_END_URL>?rst=…&psid=…&_k=<key ID>` and appends `&_s=` (HMAC-SHA256 over path +
+  query, as above). Quality terminations use `rst=2&qflag=<DYNATA_QUALITY_FLAG>` (default `2`,
+  the signed-table value). The end link is stored in `RedirectLog`, so a refresh returns the same
+  link. In mock mode the same links point at `<APP_BASE_URL>/mock-dynata/end`. Works in live
+  mode.
+- `DYNATA_SECURITY=start-end` (default, used by the local and e2e tests): entry links are
+  signed. `apps/api/src/dynata/client.ts` calls the API above (5 s timeout) once per entering
+  respondent. Mock mode verifies entry links locally with the mock credentials. Live mode is
+  refused at startup for now: the API's end links are not stored per respondent yet.
 - Per survey the database stores only the Dynata **project ID** (`DynataSurveySettings`).
 - The link we give Dynata for a survey is `<APP_BASE_URL>/s/<surveyId>`.
 

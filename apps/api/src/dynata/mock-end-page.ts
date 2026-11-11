@@ -20,12 +20,14 @@ function outcomeOf(params: URLSearchParams): string {
   }
 }
 
+export const MOCK_END_PATH = '/mock-dynata/end';
+
 export function registerMockEndPage(
   app: FastifyInstance,
   options: { appBaseUrl: string; secret: string },
 ): void {
   const base = options.appBaseUrl.replace(/\/+$/, '');
-  app.get('/mock-dynata/end', (request, reply) => {
+  app.get(MOCK_END_PATH, (request, reply) => {
     const url = `${base}${request.url}`;
     const params = new URL(url).searchParams;
     const signature = hasValidSignature(url, options.secret) ? 'valid' : 'INVALID';

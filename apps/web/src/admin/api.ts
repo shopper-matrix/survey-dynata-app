@@ -37,6 +37,8 @@ export type QuotaInput = NonNullable<SurveyDefinitionInput['quotas']>[number];
 export interface DynataSettings {
   projectId: string | null;
   mode: 'mock' | 'live';
+  /** The Dynata project's security mode (server setting DYNATA_SECURITY). */
+  security: 'end' | 'start-end';
   keyConfigured: boolean;
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DYNATA_API_URL } from './dynata/config.js';
+import { DYNATA_API_URL, DYNATA_END_URL } from './dynata/config.js';
 import { EnvValidationError, loadEnv } from './env.js';
 
 const required = {
@@ -17,7 +17,10 @@ describe('loadEnv', () => {
       ADMIN_SESSION_IDLE_MINUTES: 30,
       TRUST_PROXY: false,
       DYNATA_MODE: 'mock',
+      DYNATA_SECURITY: 'start-end',
       DYNATA_API_URL,
+      DYNATA_END_URL,
+      DYNATA_QUALITY_FLAG: '2',
     });
   });
 
@@ -64,8 +67,13 @@ describe('loadEnv', () => {
       /DYNATA_KEY_ID: is required when DYNATA_MODE=live[\s\S]*DYNATA_SECRET/,
     );
     expect(
-      loadEnv({ ...required, DYNATA_MODE: 'live', DYNATA_KEY_ID: '1', DYNATA_SECRET: 's' })
-        .DYNATA_MODE,
+      loadEnv({
+        ...required,
+        DYNATA_MODE: 'live',
+        DYNATA_SECURITY: 'end',
+        DYNATA_KEY_ID: '1',
+        DYNATA_SECRET: 's',
+      }).DYNATA_MODE,
     ).toBe('live');
   });
 });

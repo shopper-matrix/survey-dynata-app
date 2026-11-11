@@ -27,6 +27,7 @@ export function registerDynataAdminRoutes(
     return {
       projectId: settings?.projectId ?? null,
       mode: config.mode,
+      security: config.security,
       keyConfigured: config.mode === 'live',
     };
   });
@@ -53,6 +54,7 @@ export function registerDynataAdminRoutes(
     return {
       projectId: input.data.projectId,
       mode: config.mode,
+      security: config.security,
       keyConfigured: config.mode === 'live',
     };
   });

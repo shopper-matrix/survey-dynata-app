@@ -78,10 +78,10 @@ describe('Dynata settings (DSA-604)', () => {
       'GET /me': editor,
       'GET /surveys/s1': () => ({ body: details() }),
       'GET /surveys/s1/dynata': () => ({
-        body: { projectId: null, mode: 'mock', keyConfigured: false },
+        body: { projectId: null, mode: 'mock', security: 'start-end', keyConfigured: false },
       }),
       'PUT /surveys/s1/dynata': (_method, body) => ({
-        body: { ...(body as object), mode: 'mock', keyConfigured: false },
+        body: { ...(body as object), mode: 'mock', security: 'start-end', keyConfigured: false },
       }),
     });
     const writeText = vi.fn(() => Promise.resolve());
@@ -105,7 +105,7 @@ describe('Dynata settings (DSA-604)', () => {
       'GET /me': editor,
       'GET /surveys/s1': () => ({ body: details() }),
       'GET /surveys/s1/dynata': () => ({
-        body: { projectId: null, mode: 'mock', keyConfigured: false },
+        body: { projectId: null, mode: 'mock', security: 'start-end', keyConfigured: false },
       }),
       'PUT /surveys/s1/dynata': () => ({ status: 409, body: { error: 'project_in_use' } }),
     });

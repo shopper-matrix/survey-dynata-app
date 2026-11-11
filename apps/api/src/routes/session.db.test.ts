@@ -8,7 +8,7 @@ import { createDb } from '../db.js';
 import { loadEnv } from '../env.js';
 import { SESSION_COOKIE } from '../http/session.js';
 import { createDynataClient } from '../dynata/client.js';
-import { DYNATA_API_URL, type DynataConfig } from '../dynata/config.js';
+import { DYNATA_API_URL, DYNATA_END_URL, type DynataConfig } from '../dynata/config.js';
 import { createDynataProvider } from '../dynata/provider.js';
 import { hasValidSignature } from '../dynata/signature.js';
 import { importSurvey } from '../survey-import/import-survey.js';
@@ -29,6 +29,9 @@ const dynata: DynataConfig = {
   keyId: 'k',
   secret: 'mock-secret',
   apiUrl: DYNATA_API_URL,
+  security: 'start-end',
+  endUrl: DYNATA_END_URL,
+  qualityFlag: '2',
 };
 
 const options = (...ids: string[]) => ids.map((id) => ({ id, label: `Option ${id}` }));

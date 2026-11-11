@@ -90,7 +90,13 @@ export function DynataSettingsPanel({ surveyId, entryUrl, canEdit }: Props) {
       </form>
 
       <p className="text-sm text-muted-foreground">
-        Mode: <strong>{settings.mode}</strong>. The key ID and secret are server settings
+        Mode: <strong>{settings.mode}</strong>. Security:{' '}
+        <strong>
+          {settings.security === 'end'
+            ? 'Dynata Secured Links (End)'
+            : 'Dynata Secured Links (Start-End)'}
+        </strong>
+        ; choose the same in the Dynata project. The key ID and secret are server settings
         (environment variables) and are never shown here.
         {settings.mode === 'live' && !settings.keyConfigured ? ' No key is configured.' : ''}
       </p>

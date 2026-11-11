@@ -9,7 +9,7 @@ import { createAdminSession } from '../admin/sessions.js';
 import { buildApp } from '../app.js';
 import { createDb } from '../db.js';
 import { createDynataClient } from '../dynata/client.js';
-import { DYNATA_API_URL, type DynataConfig } from '../dynata/config.js';
+import { DYNATA_API_URL, DYNATA_END_URL, type DynataConfig } from '../dynata/config.js';
 import { createDynataProvider } from '../dynata/provider.js';
 import { loadEnv } from '../env.js';
 import { SESSION_COOKIE } from '../http/session.js';
@@ -24,7 +24,15 @@ try {
 const BASE = 'http://localhost:5173';
 const db = createDb(loadEnv().DATABASE_URL);
 const surveyId = randomUUID();
-const dynata: DynataConfig = { mode: 'mock', keyId: 'k', secret: 's', apiUrl: DYNATA_API_URL };
+const dynata: DynataConfig = {
+  mode: 'mock',
+  keyId: 'k',
+  secret: 's',
+  apiUrl: DYNATA_API_URL,
+  security: 'start-end',
+  endUrl: DYNATA_END_URL,
+  qualityFlag: '2',
+};
 let app: FastifyInstance;
 let adminCookie: string;
 let adminId: string;

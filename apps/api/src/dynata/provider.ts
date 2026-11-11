@@ -1,18 +1,20 @@
 import {
   ProviderUnavailableError,
+  type EndOutcome,
   type EntryVerification,
   type SampleProvider,
 } from '../providers/sample-provider.js';
 import { DynataApiError, type DynataClient, type DynataLinks } from './client.js';
 import { registerDynataAdminRoutes } from './admin-routes.js';
 import type { DynataConfig } from './config.js';
+import { endLinkFor } from './end-links.js';
 import { mockEndLink } from './mock-links.js';
-import { registerMockEndPage } from './mock-end-page.js';
+import { MOCK_END_PATH, registerMockEndPage } from './mock-end-page.js';
 import { signUrl } from './signature.js';
 
 /**
- * Dynata's API returns no link for quality terminations (open question, see
- * docs/dynata-integration.md). Until Dynata answers, quality cases use the screen-out link.
+ * Start-End mode: Dynata's API returns no link for quality terminations, so quality cases use
+ * the screen-out link there (docs/dynata-integration.md).
  */
 const QUALITY_LINK = 'screenOutLink' satisfies keyof DynataLinks;
 
@@ -22,12 +24,24 @@ interface DynataProviderOptions {
   appBaseUrl: string;
 }
 
+const OUTCOMES: EndOutcome[] = ['complete', 'screenout', 'overquota', 'quality'];
+
 export function createDynataProvider({
   client,
   config,
   appBaseUrl,
 }: DynataProviderOptions): SampleProvider {
   const mock = config.mode === 'mock';
+  const endMode = config.security === 'end';
+  const base = appBaseUrl.replace(/\/+$/, '');
+  const endPage = mock ? `${base}${MOCK_END_PATH}` : config.endUrl;
+
+  const endLink = (psid: string, outcome: EndOutcome) =>
+    endMode
+      ? endLinkFor(config, endPage, psid, outcome)
+      : mockEndLink(appBaseUrl, config.secret, psid, outcome);
+
+  const psidOf = (entryUrl: string) => new URL(entryUrl).searchParams.get('psid')?.trim() ?? '';
 
   return {
     respondentId(entryUrl) {
@@ -36,6 +50,15 @@ export function createDynataProvider({
     },
 
     async verifyEntry(entryUrl): Promise<EntryVerification> {
+      if (endMode) {
+        // End mode: Dynata does not sign entry links; the signed end link is the proof.
+        const psid = psidOf(entryUrl);
+        const endLinks = Object.fromEntries(
+          OUTCOMES.map((outcome) => [outcome, endLink(psid, outcome)]),
+        ) as Record<EndOutcome, string>;
+        return { verified: true, endLinks, invalidLink: endLinks.screenout };
+      }
+
       let links: DynataLinks;
       try {
         links = await client.buildAndValidate(entryUrl);
@@ -58,11 +81,11 @@ export function createDynataProvider({
     },
 
     endLink(respondent, outcome) {
-      if (!mock) {
-        // Live links depend on Dynata's security mode, decided with the parked DSA-303/304.
-        throw new Error('Live Dynata end links are not implemented yet (DSA-304 is parked).');
+      if (!mock && !endMode) {
+        // Ruled out at startup (config.ts): the API's links are not stored per respondent yet.
+        throw new Error('Live Start-End end links are not implemented yet (DSA-304).');
       }
-      return mockEndLink(appBaseUrl, config.secret, respondent.panelRespondentId, outcome);
+      return endLink(respondent.panelRespondentId, outcome);
     },
 
     registerAdminRoutes(app, options) {
@@ -70,6 +93,9 @@ export function createDynataProvider({
     },
 
     testEntryUrl(surveyEntryUrl, panelRespondentId) {
+      if (endMode) {
+        return `${surveyEntryUrl}?${new URLSearchParams({ psid: panelRespondentId }).toString()}`;
+      }
       const query = new URLSearchParams({ psid: panelRespondentId, _k: config.keyId });
       return signUrl(`${surveyEntryUrl}?${query.toString()}`, config.secret);
     },
