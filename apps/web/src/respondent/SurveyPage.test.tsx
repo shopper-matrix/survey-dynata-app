@@ -153,4 +153,28 @@ describe('SurveyPage languages (DSA-406)', () => {
     expect(await screen.findByRole('button', { name: 'Starten' })).toBeDefined();
     expect(screen.getByText('Etwa 15 Minuten')).toBeDefined();
   });
+
+  it('offers the survey languages and switches on request', async () => {
+    const fetchStub = stubApi({
+      questions: { ...welcome, language: 'de', languages: ['de', 'en'] },
+      language: { ...welcome, language: 'en', languages: ['de', 'en'] },
+    });
+    render(<SurveyPage />);
+    expect(await screen.findByRole('button', { name: 'Starten' })).toBeDefined();
+    expect(document.documentElement.lang).toBe('de');
+    await userEvent.click(screen.getByRole('button', { name: 'English' }));
+    expect(await screen.findByRole('button', { name: 'Start' })).toBeDefined();
+    expect(document.documentElement.lang).toBe('en');
+    expect(fetchStub).toHaveBeenCalledWith(
+      '/api/session/language',
+      expect.objectContaining({ body: JSON.stringify({ language: 'en' }) }),
+    );
+  });
+
+  it('shows no language switch for a survey in one language', async () => {
+    stubApi({ questions: { ...welcome, language: 'de', languages: ['de'] } });
+    render(<SurveyPage />);
+    expect(await screen.findByRole('button', { name: 'Starten' })).toBeDefined();
+    expect(screen.queryByRole('group', { name: 'Sprache' })).toBeNull();
+  });
 });

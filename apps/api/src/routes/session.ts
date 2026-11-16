@@ -8,7 +8,7 @@ import type { SampleProvider } from '../providers/sample-provider.js';
 import { inFullQuota } from '../quotas/quotas.js';
 import { failsScreening } from '../screening/screening.js';
 import { endSession, storedSessionEnd, type OutcomeHook } from '../session/end-session.js';
-import { loadFlowSurvey, loadRespondentState } from '../survey-flow/load.js';
+import { loadFlowSurvey, loadRespondentState, surveyLanguages } from '../survey-flow/load.js';
 import type { FlowStep } from '../survey-flow/next-screen.js';
 import { presentQuestion } from '../survey-flow/present.js';
 import { resolveWalk } from '../survey-flow/resolve.js';
@@ -18,6 +18,8 @@ import type { FlowQuestion, RespondentState } from '../survey-flow/types.js';
 // browser only shows screens and follows the returned redirect.
 
 const startBodySchema = z.strictObject({ botCheckToken: z.string().max(4096).optional() });
+
+const languageBodySchema = z.strictObject({ language: z.string().min(2).max(10) });
 
 const answerBodySchema = z.strictObject({
   questionCode: z.string().min(1),
@@ -40,9 +42,9 @@ export interface SessionRouteOptions {
 }
 
 /** The next screen, with the language the respondent sees it in (for the interface texts). */
-function screenResponse(step: FlowStep, language: string) {
+function screenResponse(step: FlowStep, language: string, languages: string[]) {
   if (step.kind === 'screen') {
-    return { done: false, language, question: step.question, progress: step.progress };
+    return { done: false, language, languages, question: step.question, progress: step.progress };
   }
   return { done: true };
 }
@@ -104,6 +106,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     return {
       done: false,
       language,
+      languages: surveyLanguages(survey.language, translations),
       welcome: {
         ...survey,
         ...translated,
@@ -121,7 +124,25 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
 
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
-    return screenResponse(walk.step, respondent.language ?? survey.language);
+    return screenResponse(walk.step, respondent.language ?? survey.language, survey.languages);
+  });
+
+  /** Switches the language of an unfinished session; returns the current screen in it. */
+  app.post('/api/session/language', async (request, reply) => {
+    const respondent = await sessionRespondent(request);
+    if (!respondent) return fail(reply, 401, 'no_session');
+    if (respondent.status !== 'started') return finished(reply, respondent.id);
+    const body = languageBodySchema.safeParse(request.body);
+    if (!body.success) return fail(reply, 400, 'invalid_request');
+
+    const survey = await loadFlowSurvey(db, respondent.surveyId);
+    const language = body.data.language.toLowerCase();
+    if (!survey.languages.includes(language)) return fail(reply, 400, 'unknown_language');
+    await db.respondent.update({ where: { id: respondent.id }, data: { language } });
+
+    if (!respondent.consentedAt) return welcome(respondent.surveyId, language);
+    const state = await loadRespondentState(db, { ...respondent, language });
+    return screenResponse((await resolveWalk(db, survey, state)).step, language, survey.languages);
   });
 
   /** Accepts the welcome screen after the bot check; returns the first question. */
@@ -142,7 +163,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     }
     const survey = await loadFlowSurvey(db, respondent.surveyId);
     const walk = await resolveWalk(db, survey, await loadRespondentState(db, respondent));
-    return screenResponse(walk.step, respondent.language ?? survey.language);
+    return screenResponse(walk.step, respondent.language ?? survey.language, survey.languages);
   });
 
   /** Declining on the welcome screen ends the survey as a screen-out. */
@@ -217,6 +238,7 @@ export function registerSessionRoutes(app: FastifyInstance, options: SessionRout
     return screenResponse(
       (await resolveWalk(db, survey, state)).step,
       respondent.language ?? survey.language,
+      survey.languages,
     );
   });
 

@@ -34,6 +34,8 @@ export interface FlowSurvey {
   id: string;
   /** Main language; translations add others. */
   language: string;
+  /** Languages respondents can choose: the main language first, then the translations. */
+  languages: string[];
   blocks: FlowBlock[];
   assignments: FlowAssignment[];
 }

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PrimaryButton } from '@/components/survey/PrimaryButton';
 import { SurveyLayout } from '@/components/survey/SurveyLayout';
 import { ApiError, sessionApi, type Screen } from './api';
 import { EndView } from './EndView';
+import { LanguageSwitch } from './LanguageSwitch';
 import { messagesFor } from './messages';
 import { QuestionView } from './QuestionView';
 import { WelcomeView } from './WelcomeView';
@@ -18,6 +19,11 @@ export function SurveyPage() {
   const t = useMemo(() => messagesFor(language), [language]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Screen readers and the browser's translator read the page's language from <html lang>.
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const show = useCallback((next: Screen) => {
     setScreen(next);
@@ -60,7 +66,12 @@ export function SurveyPage() {
     };
   }, [finished, show, t]);
 
-  // First load: state is only set once the request settles.
+  // First load only (not again when the language, and with it `t`, changes): state is only
+  // set once the request settles.
+  const messages = useRef(t);
+  useEffect(() => {
+    messages.current = t;
+  }, [t]);
   useEffect(() => {
     let active = true;
     sessionApi
@@ -69,13 +80,14 @@ export function SurveyPage() {
         if (active) show(next);
       })
       .catch((failure: unknown) => {
-        if (active)
-          setError(failure instanceof ApiError && failure.status === 401 ? t.noSession : t.error);
+        if (!active) return;
+        const { noSession, error } = messages.current;
+        setError(failure instanceof ApiError && failure.status === 401 ? noSession : error);
       });
     return () => {
       active = false;
     };
-  }, [show, t]);
+  }, [show]);
 
   if (!screen) {
     return (
@@ -99,10 +111,24 @@ export function SurveyPage() {
     );
   }
 
+  const languageSwitch =
+    !screen.done && screen.languages ? (
+      <LanguageSwitch
+        languages={screen.languages}
+        current={language}
+        label={t.language}
+        disabled={busy}
+        onChange={(next) => {
+          void run(() => sessionApi.language(next));
+        }}
+      />
+    ) : undefined;
+
   if (!screen.done && 'welcome' in screen) {
     return (
       <WelcomeView
         welcome={screen.welcome}
+        aside={languageSwitch}
         t={t}
         busy={busy}
         error={error}
@@ -122,6 +148,7 @@ export function SurveyPage() {
       <QuestionView
         key={question.code}
         question={question}
+        aside={languageSwitch}
         progress={screen.progress}
         busy={busy}
         error={error}

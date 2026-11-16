@@ -37,6 +37,7 @@ function block(
 const survey: FlowSurvey = {
   id: 's',
   language: 'en',
+  languages: ['de'],
   assignments: [{ name: 'cell', values: ['A', 'B'], pick: 1, stratifyBy: [] }],
   blocks: [
     block('A', [

@@ -2,11 +2,18 @@ import {
   assignmentSchema,
   conditionSchema,
   questionTranslationsSchema,
+  surveyTranslationsSchema,
   type AnswerValue,
 } from '@survey-dynata/shared';
 import type { PrismaClient } from '@survey-dynata/shared/db/client';
 import { z } from 'zod';
 import type { FlowSurvey, RespondentState } from './types.js';
+
+/** The main language first, then every language the survey has a translation for. */
+export function surveyLanguages(main: string, translations: unknown): string[] {
+  const added = Object.keys(surveyTranslationsSchema.parse(translations ?? {}));
+  return [main, ...added.filter((language) => language !== main)];
+}
 
 const condition = (value: unknown) => (value === null ? null : conditionSchema.parse(value));
 
@@ -16,6 +23,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
     select: {
       id: true,
       language: true,
+      translations: true,
       assignments: true,
       blocks: {
         orderBy: { position: 'asc' },
@@ -31,6 +39,7 @@ export async function loadFlowSurvey(db: PrismaClient, surveyId: string): Promis
   return {
     id: survey.id,
     language: survey.language,
+    languages: surveyLanguages(survey.language, survey.translations),
     assignments: z.array(assignmentSchema).parse(survey.assignments),
     blocks: survey.blocks.map((block) => ({
       code: block.code,

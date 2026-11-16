@@ -9,6 +9,8 @@ interface SurveyLayoutProps {
   children: ReactNode;
   /** Action area: fixed at the bottom on phones, inline from 640 px. */
   footer?: ReactNode;
+  /** Shown above the content on the right, e.g. the language switch. */
+  aside?: ReactNode;
 }
 
 /**
@@ -20,6 +22,7 @@ export function SurveyLayout({
   progressLabel = 'Progress',
   children,
   footer,
+  aside,
 }: SurveyLayoutProps) {
   return (
     <div className="flex min-h-svh flex-col bg-background text-foreground">
@@ -29,6 +32,7 @@ export function SurveyLayout({
         )}
       </header>
       <main className="mx-auto w-full max-w-xl flex-1 px-4 pt-6 pb-28 sm:flex-none sm:pb-8">
+        {aside ? <div className="mb-4 flex justify-end">{aside}</div> : null}
         {children}
       </main>
       {footer ? (

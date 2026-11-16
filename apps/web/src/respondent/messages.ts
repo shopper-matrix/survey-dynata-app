@@ -47,6 +47,7 @@ export const en = {
   redirecting: 'Taking you back to your panel…',
   notRedirected: 'Not taken back automatically?',
   progress: 'Survey progress',
+  language: 'Language',
   invalid: {
     single_choice: 'Please choose one answer.',
     multi_choice: 'Please choose at least one answer.',
@@ -111,6 +112,7 @@ export const de: Messages = {
   redirecting: 'Sie werden zu Ihrem Panel zurückgeleitet …',
   notRedirected: 'Nicht automatisch weitergeleitet?',
   progress: 'Fortschritt der Umfrage',
+  language: 'Sprache',
   invalid: {
     single_choice: 'Bitte wählen Sie eine Antwort aus.',
     multi_choice: 'Bitte wählen Sie mindestens eine Antwort aus.',

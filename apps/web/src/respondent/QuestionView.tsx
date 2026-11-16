@@ -1,5 +1,5 @@
 import { answerSchema, type AnswerValue } from '@survey-dynata/shared';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ErrorMessage } from '@/components/survey/ErrorMessage';
 import { PrimaryButton } from '@/components/survey/PrimaryButton';
 import { SurveyLayout } from '@/components/survey/SurveyLayout';
@@ -39,13 +39,23 @@ interface QuestionViewProps {
   t: Messages;
   /** `honeypot` is the hidden field's content: empty for people. */
   onSubmit: (value: AnswerValue, meta: AnswerMeta, honeypot: string) => void;
+  /** Language switch, shown when the survey has more than one language. */
+  aside?: ReactNode;
 }
 
 /**
  * One question per screen (DSA-404): the answer is checked with the shared schema before it
  * is sent, so respondents get an immediate, friendly message; the server checks it again.
  */
-export function QuestionView({ question, progress, busy, error, t, onSubmit }: QuestionViewProps) {
+export function QuestionView({
+  question,
+  progress,
+  busy,
+  error,
+  t,
+  onSubmit,
+  aside,
+}: QuestionViewProps) {
   const headingId = useId();
   const errorId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -66,6 +76,7 @@ export function QuestionView({ question, progress, busy, error, t, onSubmit }: Q
 
   return (
     <SurveyLayout
+      aside={aside}
       progress={progress}
       progressLabel={t.progress}
       footer={

@@ -1,5 +1,5 @@
 import { Clock, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/survey/ErrorMessage';
 import { PrimaryButton } from '@/components/survey/PrimaryButton';
@@ -15,15 +15,26 @@ interface WelcomeViewProps {
   error: string | null;
   onStart: (botCheckToken?: string) => void;
   onDecline: () => void;
+  /** Language switch, shown when the survey has more than one language. */
+  aside?: ReactNode;
 }
 
 /** Survey introduction, estimated length, privacy notice; Start is the only way in (DSA-402). */
-export function WelcomeView({ welcome, t, busy, error, onStart, onDecline }: WelcomeViewProps) {
+export function WelcomeView({
+  welcome,
+  t,
+  busy,
+  error,
+  onStart,
+  onDecline,
+  aside,
+}: WelcomeViewProps) {
   const [token, setToken] = useState<string>();
   const waitingForBotCheck = welcome.botCheckSiteKey !== null && token === undefined;
 
   return (
     <SurveyLayout
+      aside={aside}
       footer={
         <div className="flex flex-col gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-4">
           <PrimaryButton

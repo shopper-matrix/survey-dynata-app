@@ -462,6 +462,43 @@ describe('languages (DSA-406)', () => {
     expect(first.question.text).toBe('Welche Riegel?');
     expect(first.question.config.options[0]).toEqual({ id: '1', label: 'Option eins' });
   });
+
+  it('lets the respondent switch language before and during the survey', async () => {
+    await db.survey.update({
+      where: { id: surveyId },
+      data: { translations: { en: { title: 'Session test (EN)' } } },
+    });
+    await db.question.updateMany({
+      where: { surveyId, code: 'S1' },
+      data: { translations: { en: { text: 'Which bars?' } } },
+    });
+    const respondent = await db.respondent.create({
+      data: { surveyId, panelRespondentId: `L-${randomUUID()}`, language: 'de' },
+    });
+    const headers = { cookie: `${SESSION_COOKIE}=${app.signCookie(respondent.id)}` };
+    const switchTo = (language: string) =>
+      app.inject({ method: 'POST', url: '/api/session/language', headers, payload: { language } });
+
+    const welcome = (await switchTo('en')).json<{
+      language: string;
+      languages: string[];
+      welcome: { title: string };
+    }>();
+    expect(welcome).toMatchObject({ language: 'en', languages: ['de', 'en'] });
+    expect(welcome.welcome.title).toBe('Session test (EN)');
+
+    const first = (await app.inject({ method: 'POST', url: '/api/session/start', headers })).json<{
+      question: { text: string };
+    }>();
+    expect(first.question.text).toBe('Which bars?');
+
+    const back = (await switchTo('de')).json<{ language: string; question: { code: string } }>();
+    expect(back).toMatchObject({ language: 'de', question: { code: 'S1' } });
+
+    expect((await switchTo('fr')).statusCode).toBe(400);
+    const stored = await db.respondent.findUniqueOrThrow({ where: { id: respondent.id } });
+    expect(stored.language).toBe('de');
+  });
 });
 
 describe('honeypot (DSA-502)', () => {

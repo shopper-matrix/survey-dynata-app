@@ -19,8 +19,14 @@ export interface PresentedQuestion {
 }
 
 export type Screen =
-  | { done: false; language?: string; welcome: Welcome }
-  | { done: false; language?: string; question: PresentedQuestion; progress: number }
+  | { done: false; language?: string; languages?: string[]; welcome: Welcome }
+  | {
+      done: false;
+      language?: string;
+      languages?: string[];
+      question: PresentedQuestion;
+      progress: number;
+    }
   | { done: true; outcome?: string; redirectUrl?: string };
 
 export class ApiError extends Error {
@@ -57,4 +63,5 @@ export const sessionApi = {
       ...(honeypot ? { hp: honeypot } : {}),
     }),
   finish: () => call('finish', {}),
+  language: (language: string) => call('language', { language }),
 };
