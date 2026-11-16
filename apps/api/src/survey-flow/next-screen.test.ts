@@ -149,7 +149,10 @@ describe('block order', () => {
 
   it('follows the stored order and keeps unknown blocks in place', () => {
     const s = state({}, { [BLOCK_ORDER_KEY]: ['A', 'E', 'D'] });
-    const ordered = orderedBlocks({ id: 's', language: 'en', assignments: [], blocks }, s);
+    const ordered = orderedBlocks(
+      { id: 's', language: 'en', languages: ['en'], assignments: [], blocks },
+      s,
+    );
     expect(ordered.map((b) => b.code)).toEqual(['A', 'E', 'D', 'F']);
   });
 });
