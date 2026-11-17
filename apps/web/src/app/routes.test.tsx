@@ -35,4 +35,19 @@ describe('routes', () => {
       { timeout: 5000 },
     );
   });
+
+  it('shows the documentation to signed-in admins, linked from the sidebar', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(Response.json({ email: 'a@example.com', role: 'viewer' }))),
+    );
+    renderAt('/admin/docs');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Dokumentation' }, { timeout: 5000 }),
+    ).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Documentation' }).getAttribute('href')).toBe(
+      '/admin/docs',
+    );
+    expect(screen.getByRole('heading', { level: 2, name: 'Deployment' })).toBeDefined();
+  });
 });

@@ -7,6 +7,7 @@ const AdminLayout = lazy(() => import('@/admin/AdminLayout'));
 const LoginPage = lazy(() => import('@/admin/LoginPage'));
 const SurveysPage = lazy(() => import('@/admin/SurveysPage'));
 const SurveyBuilderPage = lazy(() => import('@/admin/builder/SurveyBuilderPage'));
+const DocsPage = lazy(() => import('@/admin/docs/DocsPage'));
 
 const lazyPage = (page: React.ReactNode) => <Suspense fallback={null}>{page}</Suspense>;
 
@@ -22,6 +23,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <SurveysPage /> },
       { path: 'surveys/:id', element: <SurveyBuilderPage /> },
+      { path: 'docs', element: <DocsPage /> },
     ],
   },
 

@@ -1,4 +1,4 @@
-import { ClipboardList, LogOut } from 'lucide-react';
+import { BookOpen, ClipboardList, LogOut } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useOutletContext } from 'react-router';
 import { ThemeToggle } from '@/app/ThemeToggle';
@@ -55,6 +55,10 @@ export default function AdminLayout() {
           <NavLink to="/admin" end className={navClass}>
             <ClipboardList aria-hidden className="size-4" />
             Surveys
+          </NavLink>
+          <NavLink to="/admin/docs" className={navClass}>
+            <BookOpen aria-hidden className="size-4" />
+            Documentation
           </NavLink>
         </nav>
         <div className="hidden px-4 py-4 text-sm text-muted-foreground md:mt-auto md:block">
